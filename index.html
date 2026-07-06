@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mix of the Month — Winners Timeline · Decoded Magazine DJ Competition</title>
+<meta name="description" content="A living timeline of every Decoded Magazine Mix of the Month DJ Competition winner since the 2025 relaunch. Auto-updates as new winners are announced.">
+<link rel="icon" href="https://i0.wp.com/www.decodedmagazine.com/wp-content/uploads/2020/08/cropped-Decoded_Logo_Favicon_36.png?resize=32%2C32&ssl=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Dosis:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0b0d; --panel:#131519; --panel-2:#17191e;
+    --line:rgba(255,255,255,.08);
+    --accent:#f2f3f5; --accent-soft:rgba(255,255,255,.22); --accent-text:#cfd4da;
+    --text:#f2f3f5; --muted:#9aa0a8;
+    --sc:#ff5500; --mc:#7c4dff;
+    --display:'Dosis',system-ui,sans-serif;
+    --body:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  /* no CSS scroll-behavior:smooth — it animates ScrollTrigger's internal
+     scroll restoration during refresh() and corrupts every measured trigger
+     position; smooth scrolling is done in JS instead */
+  body{
+    background:var(--bg); color:var(--text); font-family:var(--body);
+    overflow-x:hidden; line-height:1.6;
+  }
+  ::selection{background:var(--accent); color:#111}
+  a:focus-visible, button:focus-visible{outline:2px solid #fff; outline-offset:3px; border-radius:2px}
+
+  /* ambient background */
+  .bg-grid{
+    position:fixed; inset:0; z-index:0; pointer-events:none;
+    background-image:
+      linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+    background-size:56px 56px;
+    mask-image:radial-gradient(ellipse 90% 70% at 50% 30%, black 30%, transparent 100%);
+    -webkit-mask-image:radial-gradient(ellipse 90% 70% at 50% 30%, black 30%, transparent 100%);
+  }
+  .bg-glow{
+    position:fixed; z-index:0; pointer-events:none; border-radius:50%;
+    filter:blur(120px); opacity:.16;
+  }
+  .bg-glow.a{width:520px;height:520px;background:#fff;top:-160px;left:-120px;opacity:.07}
+  .bg-glow.b{width:420px;height:420px;background:#fff;bottom:-140px;right:-100px;opacity:.05}
+  .bg-noise{
+    position:fixed; inset:0; z-index:0; pointer-events:none; opacity:.05;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* header */
+  .site-head{
+    position:fixed; top:0; left:0; right:0; z-index:50;
+    display:flex; align-items:center; gap:16px;
+    padding:14px 22px; transition:background .3s,border-color .3s,backdrop-filter .3s;
+    border-bottom:1px solid transparent;
+  }
+  .site-head.scrolled{
+    background:rgba(10,11,13,.82); backdrop-filter:blur(12px);
+    border-bottom-color:var(--line);
+  }
+  .wordmark{
+    font-family:var(--display); font-weight:800; font-size:1.25rem;
+    letter-spacing:.28em; text-transform:uppercase; color:#fff; text-decoration:none;
+    display:flex; align-items:center; gap:10px;
+  }
+  .wordmark .dot{width:9px;height:9px;background:var(--accent);display:inline-block;transform:rotate(45deg)}
+  .head-sub{
+    font-family:var(--display); font-weight:600; letter-spacing:.2em; font-size:.68rem;
+    color:var(--muted); text-transform:uppercase; border-left:1px solid var(--line); padding-left:16px;
+  }
+  .head-spacer{flex:1}
+  .sync-pill{
+    font-size:.63rem; letter-spacing:.14em; text-transform:uppercase; font-weight:600;
+    padding:6px 12px; border:1px solid var(--line); border-radius:999px; color:var(--muted);
+    display:flex; align-items:center; gap:7px; white-space:nowrap;
+  }
+  .sync-pill .led{width:7px;height:7px;border-radius:50%;background:#555;transition:background .3s,box-shadow .3s}
+  .sync-pill.live .led{background:#41d87d;box-shadow:0 0 8px #41d87d}
+  .sync-pill.offline .led{background:#9aa0a8;box-shadow:0 0 8px rgba(255,255,255,.4)}
+  .btn-latest{
+    font-family:var(--display); font-weight:700; letter-spacing:.18em; font-size:.7rem;
+    text-transform:uppercase; color:#111; background:var(--accent); border:none; cursor:pointer;
+    padding:9px 18px; border-radius:2px; transition:transform .2s, box-shadow .2s;
+  }
+  .btn-latest:hover{transform:translateY(-2px); box-shadow:0 6px 22px var(--accent-soft)}
+  @media (max-width:720px){ .head-sub,.sync-pill span.txt{display:none} }
+
+  /* hero */
+  .hero{
+    position:relative; z-index:1; min-height:100svh;
+    display:flex; flex-direction:column; justify-content:center; align-items:center;
+    text-align:center; padding:96px 20px 60px; overflow:hidden;
+  }
+  .hero-kicker{
+    font-family:var(--display); font-weight:600; letter-spacing:.5em; font-size:.78rem;
+    color:var(--accent-text); text-transform:uppercase; margin-bottom:22px;
+  }
+  .hero h1{
+    font-family:var(--display); font-weight:800; text-transform:uppercase;
+    font-size:clamp(2.6rem, 9.5vw, 7.2rem); line-height:.95; letter-spacing:.02em;
+  }
+  .hero h1 .row{display:block; overflow:hidden}
+  .hero h1 .row span{display:inline-block}
+  .hero h1 .accent{color:transparent; -webkit-text-stroke:1.5px rgba(255,255,255,.55)}
+  .hero-sub{
+    max-width:560px; color:var(--muted); font-size:.95rem; margin-top:26px;
+  }
+  .hero-sub strong{color:var(--text); font-weight:600}
+  .hero-cta{margin-top:34px; display:flex; gap:14px; flex-wrap:wrap; justify-content:center}
+  .hero-cta a{
+    font-family:var(--display); font-weight:700; letter-spacing:.18em; font-size:.74rem;
+    text-transform:uppercase; text-decoration:none; padding:13px 26px; border-radius:2px;
+    transition:transform .2s, box-shadow .2s, background .2s;
+  }
+  .hero-cta .primary{background:var(--accent); color:#111}
+  .hero-cta .primary:hover{transform:translateY(-2px); box-shadow:0 8px 26px var(--accent-soft)}
+  .hero-cta .ghost{border:1px solid rgba(255,255,255,.25); color:var(--text)}
+  .hero-cta .ghost:hover{background:rgba(255,255,255,.07); transform:translateY(-2px)}
+  .eq{
+    display:flex; align-items:flex-end; gap:5px; height:64px; margin-top:56px;
+  }
+  .eq i{width:5px; height:12px; background:linear-gradient(to top, #6c7178, #fff); border-radius:2px 2px 0 0; opacity:.85}
+  .scroll-hint{
+    position:absolute; bottom:26px; left:50%; transform:translateX(-50%);
+    font-size:.62rem; letter-spacing:.3em; text-transform:uppercase; color:var(--muted);
+  }
+  .scroll-hint::after{
+    content:''; display:block; width:1px; height:34px; margin:10px auto 0;
+    background:linear-gradient(to bottom, var(--accent), transparent);
+  }
+
+  /* timeline */
+  .timeline{position:relative; z-index:1; max-width:1120px; margin:0 auto; padding:60px 20px 40px}
+  .tl-title{
+    font-family:var(--display); font-weight:800; text-transform:uppercase; letter-spacing:.1em;
+    font-size:clamp(1.4rem,4vw,2.2rem); text-align:center; margin-bottom:8px;
+  }
+  .tl-title em{font-style:normal; color:transparent; -webkit-text-stroke:1px rgba(255,255,255,.65)}
+  .tl-count{text-align:center; color:var(--muted); font-size:.85rem; margin-bottom:70px}
+  .spine-wrap{position:relative}
+  .spine{
+    position:absolute; top:0; bottom:0; left:50%; width:2px; transform:translateX(-50%);
+    background:rgba(255,255,255,.07);
+  }
+  .spine-fill{
+    position:absolute; top:0; left:0; width:100%; height:100%;
+    background:linear-gradient(to bottom, #9aa0a8, #fff);
+    transform-origin:top; transform:scaleY(0);
+    box-shadow:0 0 14px var(--accent-soft);
+  }
+  .year-mark{
+    position:relative; text-align:center; margin:30px 0 50px;
+    font-family:var(--display); font-weight:800; font-size:clamp(3.4rem,10vw,6.5rem);
+    color:transparent; -webkit-text-stroke:1px rgba(255,255,255,.13);
+    letter-spacing:.06em; line-height:1; user-select:none;
+  }
+  .year-mark b{position:relative; font-weight:800}
+
+  .tl-item{position:relative; display:flex; margin-bottom:96px}
+  .tl-item .node{
+    position:absolute; left:50%; top:34px; transform:translate(-50%,-50%);
+    width:15px; height:15px; background:var(--bg); border:2px solid var(--accent);
+    transform-origin:center; z-index:2; rotate:45deg;
+  }
+  .tl-item .node::after{
+    content:''; position:absolute; inset:3px; background:var(--accent);
+    opacity:0; transition:opacity .3s;
+  }
+  .tl-item.active .node::after{opacity:1}
+  .tl-item .month-side{
+    width:50%; padding:0 56px; text-align:right;
+    font-family:var(--display); font-weight:800; text-transform:uppercase;
+    font-size:clamp(1.5rem,3.4vw,2.5rem); letter-spacing:.06em; line-height:1.05;
+    color:rgba(255,255,255,.9); padding-top:12px;
+  }
+  .tl-item .month-side small{
+    display:block; font-size:.62rem; letter-spacing:.34em; color:var(--accent-text);
+    font-weight:700; margin-top:8px;
+  }
+  .tl-item.right{flex-direction:row-reverse}
+  .tl-item.right .month-side{text-align:left}
+  .card-side{width:50%; padding:0 56px}
+
+  .card{
+    background:var(--panel); border:1px solid var(--line); border-radius:6px;
+    overflow:hidden; position:relative; transform-style:preserve-3d;
+    transition:border-color .3s, box-shadow .3s;
+  }
+  .card:hover{border-color:rgba(255,255,255,.35); box-shadow:0 18px 50px rgba(0,0,0,.5), 0 0 34px rgba(255,255,255,.08)}
+  .card-media{position:relative; aspect-ratio:16/9.4; overflow:hidden; background:#0e0f12}
+  .card-media img{
+    width:100%; height:118%; object-fit:cover; display:block;
+    filter:grayscale(.9) contrast(1.05); transition:filter .5s;
+    will-change:transform;
+  }
+  .card:hover .card-media img{filter:grayscale(0) contrast(1)}
+  .card-media::after{
+    content:''; position:absolute; inset:0;
+    background:linear-gradient(to top, rgba(10,11,13,.85), transparent 55%);
+  }
+  .moty{
+    position:absolute; top:12px; right:12px; z-index:2;
+    font-family:var(--display); font-weight:800; font-size:.62rem; letter-spacing:.2em;
+    text-transform:uppercase; color:#111; background:#fff;
+    padding:6px 12px; border-radius:2px; box-shadow:0 4px 16px rgba(255,255,255,.25);
+  }
+  .card-body{padding:20px 22px 22px; position:relative}
+  .chips{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px}
+  .chip{
+    font-size:.6rem; font-weight:700; letter-spacing:.16em; text-transform:uppercase;
+    padding:5px 11px; border-radius:999px; display:inline-flex; align-items:center; gap:7px;
+    text-decoration:none;
+  }
+  .chip.genre{background:rgba(255,255,255,.07); color:var(--muted); border:1px solid var(--line)}
+  .chip.host{transition:transform .2s, box-shadow .2s}
+  .chip.host:hover{transform:translateY(-2px)}
+  .chip.host.sc{background:rgba(255,85,0,.12); color:var(--sc); border:1px solid rgba(255,85,0,.4)}
+  .chip.host.sc:hover{box-shadow:0 4px 16px rgba(255,85,0,.3)}
+  .chip.host.mc{background:rgba(124,77,255,.12); color:#a68eff; border:1px solid rgba(124,77,255,.45)}
+  .chip.host.mc:hover{box-shadow:0 4px 16px rgba(124,77,255,.3)}
+  .chip.host svg{width:15px; height:15px; flex:none}
+  .card-body h3{
+    font-family:var(--display); font-weight:800; text-transform:uppercase;
+    font-size:1.65rem; letter-spacing:.04em; line-height:1.1;
+  }
+  .card-body .won-line{color:var(--muted); font-size:.78rem; margin-top:5px}
+  .actions{display:flex; gap:10px; margin-top:18px; flex-wrap:wrap}
+  .btn{
+    font-family:var(--display); font-weight:700; letter-spacing:.16em; font-size:.68rem;
+    text-transform:uppercase; text-decoration:none; cursor:pointer; border-radius:2px;
+    padding:11px 18px; display:inline-flex; align-items:center; gap:9px;
+    transition:transform .2s, box-shadow .2s, background .2s, color .2s;
+  }
+  .btn.play{background:var(--accent); color:#111; border:none}
+  .btn.play:hover{transform:translateY(-2px); box-shadow:0 6px 20px var(--accent-soft)}
+  .btn.play.on{background:#111; color:#fff; box-shadow:inset 0 0 0 1px rgba(255,255,255,.4)}
+  .btn.link{border:1px solid rgba(255,255,255,.22); color:var(--text); background:transparent}
+  .btn.link:hover{background:rgba(255,255,255,.07); transform:translateY(-2px)}
+  .embed-slot{margin-top:16px; display:none}
+  .embed-slot.open{display:block}
+  .embed-slot iframe{width:100%; border:0; border-radius:4px; display:block}
+  .badge-new{
+    position:absolute; top:-11px; left:18px;
+    font-size:.58rem; font-weight:700; letter-spacing:.2em; text-transform:uppercase;
+    background:#fff; color:#111; padding:4px 10px; border-radius:2px;
+  }
+
+  /* CTA card */
+  .cta-item .card{border-style:dashed; border-color:rgba(255,255,255,.45); background:rgba(255,255,255,.04)}
+  .cta-item .card-body{padding:30px 26px}
+  .cta-item h3{font-size:1.5rem}
+  .cta-item p{color:var(--muted); font-size:.88rem; margin-top:8px}
+
+  footer{
+    position:relative; z-index:1; border-top:1px solid var(--line);
+    padding:44px 22px 54px; text-align:center; color:var(--muted); font-size:.78rem;
+  }
+  footer a{color:var(--text)}
+  footer .fine{margin-top:10px; font-size:.68rem}
+
+  /* side nav dots */
+  .dot-nav{
+    position:fixed; right:12px; top:50%; transform:translateY(-50%); z-index:40;
+    display:flex; flex-direction:column;
+  }
+  .dot-nav button{
+    /* 24x24 hit target (WCAG 2.5.8), drawn as a 9px dot via ::before */
+    width:24px; height:24px; border:none; background:transparent;
+    cursor:pointer; position:relative;
+  }
+  .dot-nav button::before{
+    content:''; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+    width:9px; height:9px; border-radius:50%; border:1px solid rgba(255,255,255,.3);
+    transition:background .25s, transform .25s, border-color .25s;
+  }
+  .dot-nav button:hover::before{transform:translate(-50%,-50%) scale(1.5)}
+  .dot-nav button.active::before{background:var(--accent); border-color:var(--accent); box-shadow:0 0 8px var(--accent-soft)}
+  .dot-nav button .tip{
+    position:absolute; right:20px; top:50%; transform:translateY(-50%);
+    background:#1c1e24; border:1px solid var(--line); color:var(--text);
+    font-size:.62rem; letter-spacing:.1em; text-transform:uppercase; font-weight:600;
+    padding:5px 10px; border-radius:3px; white-space:nowrap;
+    opacity:0; pointer-events:none; transition:opacity .2s;
+  }
+  .dot-nav button:hover .tip{opacity:1}
+
+  /* mobile */
+  @media (max-width:880px){
+    .dot-nav{display:none}
+    .spine{left:22px}
+    .tl-item, .tl-item.right{flex-direction:column; margin-bottom:70px}
+    .tl-item .node{left:22px}
+    .tl-item .month-side, .tl-item.right .month-side{
+      width:100%; text-align:left; padding:0 0 16px 54px; font-size:1.35rem;
+    }
+    .card-side{width:100%; padding:0 0 0 54px}
+    .year-mark{text-align:left; padding-left:54px; font-size:3rem}
+    .year-mark b{padding:0 14px 0 0}
+  }
+
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none!important; transition:none!important}
+  }
+</style>
+</head>
+<body>
+
+<div class="bg-grid"></div>
+<div class="bg-glow a"></div>
+<div class="bg-glow b"></div>
+<div class="bg-noise"></div>
+
+<header class="site-head" id="siteHead">
+  <a class="wordmark" href="https://www.decodedmagazine.com" target="_blank" rel="noopener"><span class="dot"></span>Decoded</a>
+  <span class="head-sub">Mix of the Month · Winners Timeline</span>
+  <span class="head-spacer"></span>
+  <span class="sync-pill" id="syncPill"><span class="led"></span><span class="txt" id="syncTxt">Syncing…</span></span>
+  <button class="btn-latest" id="btnLatest">Latest Winner ↓</button>
+</header>
+
+<section class="hero" id="hero">
+  <p class="hero-kicker">Decoded Magazine DJ Competition</p>
+  <h1 aria-label="Mix of the Month — The Winners">
+    <span class="row"><span>Mix of the</span></span>
+    <span class="row"><span class="accent">Month</span></span>
+    <span class="row"><span>The Winners</span></span>
+  </h1>
+  <p class="hero-sub">
+    Every winning DJ since the competition's <strong>2025 relaunch</strong> — one timeline,
+    updated <strong>automatically</strong> the moment a new winner is announced on decodedmagazine.com.
+  </p>
+  <div class="hero-cta">
+    <a class="primary" href="#timeline">Explore the timeline</a>
+    <a class="ghost" href="https://www.decodedmagazine.com/decoded-magazine-dj-competition/" target="_blank" rel="noopener">Enter the competition ↗</a>
+  </div>
+  <div class="eq" id="eq" aria-hidden="true"></div>
+  <span class="scroll-hint" aria-hidden="true">Scroll</span>
+</section>
+
+<main class="timeline" id="timeline">
+  <h2 class="tl-title">The <em>Hall of Fame</em></h2>
+  <p class="tl-count" id="tlCount"></p>
+  <div class="spine-wrap" id="spineWrap">
+    <div class="spine"><div class="spine-fill" id="spineFill"></div></div>
+    <div id="tlItems"></div>
+  </div>
+</main>
+
+<nav class="dot-nav" id="dotNav" aria-label="Jump to winner"></nav>
+
+<footer>
+  <p>An unofficial fan-made timeline of the
+    <a href="https://www.decodedmagazine.com/category/mixes/" target="_blank" rel="noopener">Decoded Magazine Mix of the Month competition</a>.
+    All mixes, photography &amp; interviews © Decoded Magazine and the artists.</p>
+  <p class="fine" id="footFine">Winner data is fetched live from the decodedmagazine.com WordPress API on every visit.</p>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/ScrollTrigger.min.js"></script>
+<script>
+/* ============================================================
+   DATA — seed winners (May 2025 relaunch → May 2026).
+   Anything announced after the newest seed is discovered at
+   runtime via the WordPress REST API and merged in.
+   ============================================================ */
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const WP_API = 'https://www.decodedmagazine.com/wp-json/wp/v2/posts';
+const IMG = p => 'https://i0.wp.com/www.decodedmagazine.com/wp-content/uploads' + p + '?w=900&ssl=1';
+
+const SEED = [
+  {id:65051,name:'Molotov',month:4,year:2025,article:'https://www.decodedmagazine.com/mix-of-the-month-may-winner-molotov/',host:'soundcloud',track:'2108721030',permalink:'https://soundcloud.com/decodedmagazine/mix-of-the-month-winner-may-2025-molotov',image:IMG('/2025/06/Molotov-DJ.jpeg')},
+  {id:65253,name:'Uncle GRAMpa',month:5,year:2025,article:'https://www.decodedmagazine.com/mix-of-the-month-june-winner-uncle-grampa/',host:'soundcloud',track:'2124428511',permalink:'https://soundcloud.com/decodedmagazine/mix-of-the-month-winner-june-2025-uncle-grampa',image:IMG('/2025/07/Press-shot-scaled.jpeg')},
+  {id:65453,name:'DJ LP',month:6,year:2025,genre:'House',article:'https://www.decodedmagazine.com/mix-of-the-month-july-winner-dj-lp/',host:'soundcloud',track:'2140367328',permalink:'https://soundcloud.com/decodedmagazine/mix-of-the-month-winner-july-2025-dj-lp',image:IMG('/2025/08/Press-shot-scaled-e1754068866735.jpg')},
+  {id:66030,name:'MJ',month:7,year:2025,article:'https://www.decodedmagazine.com/introducing-mj-augusts-decoded-magazine-mix-of-the-month-winner/',host:'soundcloud',track:'2165294742',permalink:'https://soundcloud.com/decodedmagazine/mix-of-the-month-winner-august-2025-mj',image:IMG('/2025/09/MJ-1-scaled.jpg')},
+  {id:66259,name:'PWNDA',month:8,year:2025,genre:'House',article:'https://www.decodedmagazine.com/introducing-pwnda-september-decoded-magazine-mix-of-the-month-winner/',host:'soundcloud',track:'2181484991',permalink:'https://soundcloud.com/decodedmagazine/mix-of-the-month-winner-september-2025-pwnda',image:IMG('/2025/10/PWNDA-1-scaled.jpg')},
+  {id:66712,name:'Alan Heart',month:9,year:2025,genre:'Ambient & Chillout',article:'https://www.decodedmagazine.com/introducing-alan-heart-october-decoded-magazine-mix-of-the-month-winner/',host:'soundcloud',track:'2212524662',permalink:'https://soundcloud.com/decodedmagazine/mix-of-the-month-winner-october-2025-alan-heart',image:IMG('/2025/11/Alan-Heart-press-shot-web-1-scaled.png')},
+  {id:66966,name:'Richard Q',month:10,year:2025,article:'https://www.decodedmagazine.com/introducing-our-november-mix-of-the-month-winner-richard-q/',host:'soundcloud',track:'2228443280',permalink:'https://soundcloud.com/decodedmagazine/mix-of-the-month-winner-november-2025-richard-q',image:IMG('/2025/12/Press-shot-scaled.jpg')},
+  {id:67095,name:'Wittak',month:11,year:2025,genre:'Breaks & DnB',moty:true,article:'https://www.decodedmagazine.com/introducing-mix-of-the-year-winner-wittak/',host:'soundcloud',track:'2244415493',permalink:'https://soundcloud.com/decodedmagazine/mix-of-the-month-winner-december-2025-and-mix-of-the-year-wittak',image:IMG('/2026/01/Wittak-NSa-scaled.jpeg')},
+  {id:67496,name:'Crowley',month:0,year:2026,genre:'Progressive House',article:'https://www.decodedmagazine.com/mix-of-the-month-january-2026-winner-crowley/',host:'soundcloud',track:'2265994562',permalink:'https://soundcloud.com/decodedmagazine/mix-of-the-month-winner-january-2026-crowley',image:IMG('/2026/02/Crowley-Press-Shot-scaled-e1771047647111.jpg')},
+  {id:67869,name:'Riley Bee',month:1,year:2026,article:'https://www.decodedmagazine.com/meet-our-february-2026-mix-of-the-month-winner-riley-bee/',host:'soundcloud',track:'2282521136',permalink:'https://soundcloud.com/decodedmagazine/mix-of-the-month-winner-february-2026-riley-bee',image:IMG('/2026/03/Riley-Bee-scaled.jpg')},
+  {id:68127,name:'Aqueous',month:2,year:2026,genre:'Breaks & DnB',article:'https://www.decodedmagazine.com/meet-our-march-mix-of-the-month-winner-aqueous/',host:'soundcloud',track:'2301654137',permalink:'https://soundcloud.com/decodedmagazine/mix-of-the-month-winner-march-2026-aqueous',image:IMG('/2026/04/Aqueous-Monkey-Loft-25-scaled.jpg')},
+  {id:68322,name:'Toxic Shame Squadron',month:3,year:2026,article:'https://www.decodedmagazine.com/meet-our-april-2026-mix-of-the-month-winner-toxic-shame-squadron/',host:'soundcloud',track:'2316885677',permalink:'https://soundcloud.com/decodedmagazine/mix-of-the-month-winner-april-2026-toxic-shame-squadron',image:IMG('/2026/05/TSS-promo-pic-landscape-scaled.jpeg')},
+  {id:68712,name:'Djjosiah',month:4,year:2026,article:'https://www.decodedmagazine.com/meet-our-may-2026-mix-of-the-month-winner-djjosiah/',host:'soundcloud',track:'2341578089',permalink:'https://soundcloud.com/decodedmagazine/mix-of-the-month-winner-may-2026-djjosiah',image:IMG('/2026/06/Djjosiah-scaled.jpg')},
+];
+
+/* ============================================================
+   LIVE SYNC — discover winners announced after the seeds
+   ============================================================ */
+const decodeEntities = s => { const t = document.createElement('textarea'); t.innerHTML = s; return t.value; };
+
+function parseWinnerPost(post){
+  const title = decodeEntities(post.title.rendered).replace(/\s+/g,' ').trim();
+  const lower = title.toLowerCase();
+  const isWinner = (lower.includes('mix of the month') || lower.includes('mix of the year')) &&
+                   lower.includes('winner') && !lower.includes('submit');
+  if (!isWinner) return null;
+
+  // winner name
+  let name = null, m;
+  if ((m = title.match(/winner\s*[–—-]\s*(.+)$/i)))      name = m[1];
+  else if ((m = title.match(/introducing\s+(.+?)\s*[–—-]/i))) name = m[1];
+  else if ((m = title.match(/winner\s+(.+)$/i)))          name = m[1];
+  if (!name) return null;
+  name = name.replace(/\s*🏆\s*/g,'').trim();
+
+  // month + year the mix was won
+  const monthIdx = MONTHS.findIndex(mo => lower.includes(mo.toLowerCase()));
+  const posted = new Date(post.date);
+  let month = monthIdx, year;
+  if (month === -1) { // no month in title — assume the month before the announcement
+    month = (posted.getMonth() + 11) % 12;
+    year  = month === 11 ? posted.getFullYear() - 1 : posted.getFullYear();
+  } else {
+    const yInTitle = title.match(/20\d{2}/);
+    year = yInTitle ? +yInTitle[0]
+         : (month > posted.getMonth() ? posted.getFullYear() - 1 : posted.getFullYear());
+  }
+
+  // mix embed from the article body
+  const doc = new DOMParser().parseFromString(post.content.rendered, 'text/html');
+  let host = null, embedSrc = null;
+  for (const f of doc.querySelectorAll('iframe')) {
+    const src = f.getAttribute('src') || '';
+    if (src.includes('soundcloud.com/player')) { host = 'soundcloud'; embedSrc = src; break; }
+    if (src.includes('mixcloud.com/widget'))   { host = 'mixcloud';   embedSrc = src; break; }
+  }
+  if (embedSrc) embedSrc = embedSrc.replace('auto_play=false','auto_play=true');
+
+  return {
+    id: post.id, name, month, year,
+    moty: lower.includes('mix of the year'),
+    article: post.link,
+    host: host || 'soundcloud',
+    embedSrc,
+    image: post.jetpack_featured_media_url || null,
+    isNew: true,
+  };
+}
+
+async function fetchLiveWinners(){
+  const url = WP_API + '?' + new URLSearchParams({
+    search: 'mix of the month winner', per_page: '50', orderby: 'date', order: 'desc',
+    _fields: 'id,date,link,title,content,jetpack_featured_media_url',
+  });
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const posts = await res.json();
+  const known = new Set(SEED.map(w => w.id));
+  return posts.map(parseWinnerPost).filter(w => w && !known.has(w.id));
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+const HOST_META = {
+  soundcloud: { label:'SoundCloud', cls:'sc',
+    svg:'<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M1.5 15.5v-3.2h.9v3.2h-.9zm2-4.6v4.6h.9v-4.6h-.9zm2-1.2v5.8h.9V9.7h-.9zm2-.6v6.4h.9V9.1h-.9zm2 .2v6.2h.9V9.3h-.9zm2-1.6v7.8h.9V7.7h-.9zm7.6 2.5a3 3 0 0 0-1-.17c-.3-2-2-3.53-4.1-3.53-.5 0-1 .1-1.4.26-.2.07-.2.15-.2.3v6.94h6.7a2.4 2.4 0 0 0 0-4.8z"/></svg>' },
+  mixcloud: { label:'Mixcloud', cls:'mc',
+    svg:'<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 15.5 5.2 9h1.4l2 5.7L10.5 9h1.4l2.2 6.5h-1.5l-1.4-4.3-1.9 4.3H8.1L6.3 11.2l-1.5 4.3H3zm13.6 0 2.5-3.2-2.4-3.3h1.7l1.6 2.2 1.6-2.2h1.7l-2.4 3.2 2.5 3.3h-1.7l-1.7-2.3-1.7 2.3h-1.7z"/></svg>' },
+};
+
+function scEmbed(track){
+  return 'https://w.soundcloud.com/player/?url=' +
+    encodeURIComponent('https://api.soundcloud.com/tracks/' + track) +
+    '&color=%23111111&auto_play=true&hide_related=true&show_comments=false&show_teaser=false';
+}
+const winnerEmbed = w => w.embedSrc || (w.host === 'soundcloud' ? scEmbed(w.track) : null);
+const sortKey = w => w.year * 12 + w.month;
+
+function el(tag, cls, html){
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (html != null) n.innerHTML = html;
+  return n;
+}
+
+function buildCard(w, side){
+  const item = el('article', 'tl-item ' + side);
+  item.id = 'w-' + w.id;
+
+  item.appendChild(el('div','node'));
+
+  const monthName = MONTHS[w.month];
+  const monthSide = el('div','month-side');
+  monthSide.innerHTML = monthName + ' <br>' + w.year + '<small>Winner No. ' + w.seq + '</small>';
+  item.appendChild(monthSide);
+
+  const cardSide = el('div','card-side');
+  const card = el('div','card');
+
+  // media
+  const media = el('div','card-media');
+  if (w.image){
+    const img = document.createElement('img');
+    img.src = w.image; img.loading = 'lazy'; img.alt = w.name + ' — ' + monthName + ' ' + w.year + ' winner';
+    media.appendChild(img);
+  }
+  if (w.moty) media.appendChild(el('span','moty','★ Mix of the Year'));
+  card.appendChild(media);
+
+  // body
+  const body = el('div','card-body');
+  if (w.isNew) body.appendChild(el('span','badge-new','New'));
+
+  const chips = el('div','chips');
+  if (w.genre) chips.appendChild(el('span','chip genre', w.genre));
+  const hm = HOST_META[w.host] || HOST_META.soundcloud;
+  const host = el(w.permalink ? 'a' : 'span', 'chip host ' + hm.cls, hm.svg + hm.label);
+  if (w.permalink){
+    host.href = w.permalink; host.target = '_blank'; host.rel = 'noopener';
+    host.title = 'Open the winning mix on ' + hm.label;
+    host.setAttribute('aria-label', 'Open ' + w.name + '’s winning mix on ' + hm.label + ' (opens in new tab)');
+  }
+  chips.appendChild(host);
+  body.appendChild(chips);
+
+  const h3 = el('h3'); h3.textContent = w.name; body.appendChild(h3);
+  body.appendChild(el('p','won-line','Mix of the Month · ' + monthName + ' ' + w.year + (w.moty ? ' — crowned Mix of the Year' : '')));
+
+  const actions = el('div','actions');
+  const embedSrc = winnerEmbed(w);
+  if (embedSrc){
+    const play = el('button','btn play','▶&nbsp; Play the mix');
+    play.setAttribute('aria-label', 'Play the winning mix by ' + w.name);
+    play.addEventListener('click', () => togglePlayer(play, item, embedSrc, w));
+    actions.appendChild(play);
+  } else if (w.permalink){
+    const listen = el('a','btn play','▶&nbsp; Listen ↗');
+    listen.href = w.permalink; listen.target = '_blank'; listen.rel = 'noopener';
+    listen.setAttribute('aria-label', 'Listen to the winning mix by ' + w.name + ' (opens in new tab)');
+    actions.appendChild(listen);
+  }
+  const read = el('a','btn link','Interview ↗');
+  read.href = w.article; read.target = '_blank'; read.rel = 'noopener';
+  read.title = 'Read the full interview on decodedmagazine.com';
+  read.setAttribute('aria-label', 'Read the interview with ' + w.name + ' on decodedmagazine.com (opens in new tab)');
+  actions.appendChild(read);
+  body.appendChild(actions);
+
+  body.appendChild(el('div','embed-slot'));
+  card.appendChild(body);
+  cardSide.appendChild(card);
+  item.appendChild(cardSide);
+  return item;
+}
+
+let openPlayer = null;
+function togglePlayer(btn, item, src, w){
+  const slot = item.querySelector('.embed-slot');
+  const isOpen = slot.classList.contains('open');
+  if (openPlayer && openPlayer.slot !== slot) closePlayer(openPlayer);
+  if (isOpen){ closePlayer({slot, btn, name: w.name}); return; }
+  const f = document.createElement('iframe');
+  f.src = src;
+  f.height = w.host === 'mixcloud' ? 120 : 166;
+  f.allow = 'autoplay; encrypted-media';
+  f.title = 'Winning mix by ' + w.name;
+  slot.replaceChildren(f);
+  slot.classList.add('open');
+  btn.classList.add('on');
+  btn.innerHTML = '■&nbsp; Close player';
+  btn.setAttribute('aria-label', 'Close the mix player for ' + w.name);
+  openPlayer = {slot, btn, name: w.name};
+  // refresh must run outside the tween's render tick — a synchronous
+  // refresh mid-tick miscalculates every trigger's position by -scrollY
+  if (window.gsap) gsap.from(slot, {height:0, opacity:0, duration:.45, ease:'power2.out', clearProps:'all',
+    onComplete: () => gsap.delayedCall(.1, () => ScrollTrigger.refresh())});
+}
+function closePlayer(p){
+  p.slot.classList.remove('open');
+  p.slot.replaceChildren();
+  p.btn.classList.remove('on');
+  p.btn.innerHTML = '▶&nbsp; Play the mix';
+  if (p.name) p.btn.setAttribute('aria-label', 'Play the winning mix by ' + p.name);
+  if (openPlayer && openPlayer.slot === p.slot) openPlayer = null;
+  if (window.gsap && window.ScrollTrigger) gsap.delayedCall(.1, () => ScrollTrigger.refresh());
+}
+
+function render(winners){
+  const wrap = document.getElementById('tlItems');
+  const nav = document.getElementById('dotNav');
+  wrap.replaceChildren();
+  nav.replaceChildren();
+  openPlayer = null;
+
+  const chrono = [...winners].sort((a,b) => sortKey(a) - sortKey(b));
+  chrono.forEach((w,i) => w.seq = String(i+1).padStart(2,'0'));
+  const sorted = [...chrono].reverse(); // newest first
+  const latest = sorted[0], oldest = chrono[0];
+
+  // "your name here" CTA card leads the timeline
+  const next = new Date(latest.year, latest.month + 1, 1);
+  const cta = el('article','tl-item cta-item left');
+  cta.innerHTML =
+    '<div class="node"></div>' +
+    '<div class="month-side">' + MONTHS[next.getMonth()] + ' <br>' + next.getFullYear() + '<small>Next up</small></div>' +
+    '<div class="card-side"><div class="card"><div class="card-body">' +
+    '<h3>Your name here?</h3>' +
+    '<p>The next winner will appear at the top of this timeline automatically the moment Decoded announces it. Think your mix has what it takes?</p>' +
+    '<div class="actions"><a class="btn play" target="_blank" rel="noopener" href="https://www.decodedmagazine.com/decoded-magazine-dj-competition/">Enter the competition ↗</a></div>' +
+    '</div></div></div>';
+  wrap.appendChild(cta);
+
+  let lastYear = null;
+  sorted.forEach((w,i) => {
+    if (w.year !== lastYear){
+      const ym = el('div','year-mark','<b>' + w.year + '</b>');
+      ym.setAttribute('aria-hidden','true');
+      wrap.appendChild(ym);
+      lastYear = w.year;
+    }
+    const item = buildCard(w, i % 2 ? 'left' : 'right');
+    wrap.appendChild(item);
+
+    const dot = document.createElement('button');
+    dot.setAttribute('aria-label', w.name + ', ' + MONTHS[w.month] + ' ' + w.year + ' winner');
+    dot.dataset.target = item.id;
+    dot.appendChild(el('span','tip', MONTHS[w.month].slice(0,3) + ' ' + w.year + ' · ' + w.name));
+    dot.addEventListener('click', () => document.getElementById(item.id).scrollIntoView({behavior: motionOK ? 'smooth' : 'auto', block:'center'}));
+    nav.appendChild(dot);
+  });
+
+  document.getElementById('tlCount').textContent =
+    sorted.length + ' winners and counting · newest first · ' + MONTHS[latest.month] + ' ' + latest.year +
+    ' back to ' + MONTHS[oldest.month] + ' ' + oldest.year;
+
+  document.getElementById('btnLatest').onclick =
+    () => document.getElementById('w-' + latest.id).scrollIntoView({behavior: motionOK ? 'smooth' : 'auto', block:'center'});
+
+  initAnimations();
+}
+
+/* ============================================================
+   GSAP
+   ============================================================ */
+const motionOK = !window.matchMedia('(prefers-reduced-motion: reduce)').matches && window.gsap;
+
+function heroIntro(){
+  const eq = document.getElementById('eq');
+  for (let i = 0; i < 28; i++) eq.appendChild(document.createElement('i'));
+  if (!motionOK) return;
+  gsap.registerPlugin(ScrollTrigger);
+  // CSS scroll-behavior:smooth animates ScrollTrigger's internal scroll
+  // restoration during refresh(), skewing every measured position by the
+  // current scroll offset — suppress it for the duration of any refresh
+  ScrollTrigger.addEventListener('refreshInit', () => {
+    document.documentElement.style.scrollBehavior = 'auto';
+    void document.documentElement.offsetWidth; // flush so the override is live before measuring
+  });
+  ScrollTrigger.addEventListener('refresh', () => document.documentElement.style.scrollBehavior = '');
+  gsap.from('.hero h1 .row span', {yPercent:110, duration:1, stagger:.12, ease:'power4.out', delay:.15});
+  gsap.from('.hero-kicker, .hero-sub, .hero-cta', {opacity:0, y:24, duration:.9, stagger:.12, ease:'power2.out', delay:.5});
+  document.querySelectorAll('#eq i').forEach(bar => {
+    gsap.to(bar, {height: gsap.utils.random(10,64), duration: gsap.utils.random(.28,.6),
+      repeat:-1, yoyo:true, ease:'sine.inOut', delay: gsap.utils.random(0,.5),
+      repeatRefresh:true});
+  });
+  // The fade is driven straight from scrollY rather than a ScrollTrigger:
+  // trigger positions can be corrupted by refreshes while scrolled (which
+  // left the hero stuck faded), whereas this mapping is stateless — at
+  // scrollY 0 it always restores the exact first-load render.
+  const hero = document.querySelector('.hero');
+  const heroEls = gsap.utils.toArray('.hero > *:not(.scroll-hint)');
+  let heroTick = false;
+  const heroFade = () => {
+    heroTick = false;
+    const p = gsap.utils.clamp(0, 1, scrollY / hero.offsetHeight);
+    gsap.set(heroEls, {yPercent:-8 * p, opacity:1 - .75 * p});
+  };
+  window.addEventListener('scroll', () => {
+    if (!heroTick){ heroTick = true; requestAnimationFrame(heroFade); }
+  }, {passive:true});
+}
+
+function initAnimations(){
+  if (!motionOK){
+    document.querySelectorAll('.tl-item').forEach(n => n.classList.add('active'));
+    return;
+  }
+  gsap.registerPlugin(ScrollTrigger);
+  ScrollTrigger.getAll().forEach(t => { if (t.vars.id !== 'hero') t.kill(); });
+
+  // spine draws with scroll
+  gsap.fromTo('#spineFill', {scaleY:0}, {scaleY:1, ease:'none',
+    scrollTrigger:{trigger:'#spineWrap', start:'top 70%', end:'bottom 65%', scrub:.4}});
+
+  document.querySelectorAll('.tl-item').forEach(item => {
+    const fromRight = item.classList.contains('right');
+    const card = item.querySelector('.card');
+    const month = item.querySelector('.month-side');
+    const img = item.querySelector('.card-media img');
+
+    gsap.from(card, {x: fromRight ? 90 : -90, opacity:0, rotate: fromRight ? 1.5 : -1.5,
+      duration:.9, ease:'power3.out',
+      scrollTrigger:{trigger:item, start:'top 82%', once:true}});
+    if (month) gsap.from(month, {x: fromRight ? -60 : 60, opacity:0, duration:.9, ease:'power3.out',
+      scrollTrigger:{trigger:item, start:'top 82%', once:true}});
+    if (img) gsap.fromTo(img, {yPercent:-9}, {yPercent:0, ease:'none',
+      scrollTrigger:{trigger:item, start:'top bottom', end:'bottom top', scrub:true}});
+
+    ScrollTrigger.create({trigger:item, start:'top 60%', end:'bottom 40%',
+      onToggle: st => item.classList.toggle('active', st.isActive)});
+
+    // subtle 3D tilt on hover
+    if (card && window.matchMedia('(hover:hover)').matches){
+      gsap.set(card, {transformPerspective:900});
+      const qx = gsap.quickTo(card, 'rotationY', {duration:.4, ease:'power2.out'});
+      const qy = gsap.quickTo(card, 'rotationX', {duration:.4, ease:'power2.out'});
+      card.addEventListener('mousemove', e => {
+        const r = card.getBoundingClientRect();
+        qx(((e.clientX - r.left) / r.width - .5) * 7);
+        qy(-((e.clientY - r.top) / r.height - .5) * 5);
+      });
+      card.addEventListener('mouseleave', () => { qx(0); qy(0); });
+    }
+  });
+
+  gsap.from('.year-mark', {opacity:0, scale:.92, duration:.8, ease:'power2.out', stagger:0,
+    scrollTrigger:{trigger:'.year-mark', start:'top 85%', once:true}});
+}
+
+/* ============================================================
+   BOOT
+   ============================================================ */
+const pill = document.getElementById('syncPill'), pillTxt = document.getElementById('syncTxt');
+window.addEventListener('scroll', () =>
+  document.getElementById('siteHead').classList.toggle('scrolled', scrollY > 40), {passive:true});
+
+// dot nav follows whichever card is nearest the viewport centre
+function trackDots(){
+  let ticking = false;
+  const update = () => {
+    ticking = false;
+    let best = null, bestD = Infinity;
+    document.querySelectorAll('.tl-item:not(.cta-item)').forEach(it => {
+      const r = it.getBoundingClientRect();
+      const d = Math.abs((r.top + r.bottom) / 2 - innerHeight / 2);
+      if (d < bestD){ bestD = d; best = it.id; }
+    });
+    if (bestD > innerHeight) best = null; // timeline not in view yet
+    document.querySelectorAll('.dot-nav button').forEach(d =>
+      d.classList.toggle('active', d.dataset.target === best));
+  };
+  const queue = () => { if (!ticking){ ticking = true; requestAnimationFrame(update); } };
+  window.addEventListener('scroll', queue, {passive:true});
+  window.addEventListener('resize', queue, {passive:true});
+  update();
+}
+
+// JS smooth scroll for the hero anchor (CSS scroll-behavior is deliberately off)
+document.querySelector('a[href="#timeline"]').addEventListener('click', e => {
+  e.preventDefault();
+  history.replaceState(null, '', '#timeline');
+  document.getElementById('timeline').scrollIntoView({behavior: motionOK ? 'smooth' : 'auto'});
+});
+
+heroIntro();
+render(SEED);
+trackDots();
+
+fetchLiveWinners()
+  .then(fresh => {
+    pill.classList.add('live');
+    if (fresh.length){
+      pillTxt.textContent = 'Live · ' + fresh.length + ' new winner' + (fresh.length > 1 ? 's' : '');
+      render([...SEED, ...fresh]);
+      // land the user near the newest arrival's month tag in the count line
+    } else {
+      pillTxt.textContent = 'Live · up to date';
+    }
+  })
+  .catch(err => {
+    console.warn('Live sync failed:', err);
+    pill.classList.add('offline');
+    pillTxt.textContent = 'Offline · cached winners';
+    document.getElementById('footFine').textContent =
+      'Live sync unavailable right now — showing the built-in winner list. (Tip: serve this file over http://, not file://, so the browser can reach the decodedmagazine.com API.)';
+  });
+</script>
+</body>
+</html>
