@@ -572,6 +572,9 @@ function buildCard(w, side){
   if (embedSrc){
     const play = el('button','btn play','▶&nbsp; Play the mix');
     play.setAttribute('aria-label', 'Play the winning mix by ' + w.name);
+    // the tap's own touchstart primes this card's pooled widget before click
+    ['touchstart','pointerdown'].forEach(ev =>
+      play.addEventListener(ev, () => primePlayer(players.get(w.id)), {passive:true}));
     play.addEventListener('click', () => togglePlayer(play, item, embedSrc, w));
     actions.appendChild(play);
   } else if (w.permalink){
@@ -642,26 +645,33 @@ document.getElementById('playLatest').addEventListener('click', () => {
 
 let openPlayer = null, premount = null;
 
-// pre-mount the latest winner's player (hidden) so the hero CTA can call
-// widget.play() synchronously inside the tap — mobile browsers block iframe
-// autoplay, which made the first taps do nothing
-// the hero CTA is held disabled until the widget is READY: a play() queued
+/* ---- player pool ----
+   Mobile browsers refuse to start audio in an iframe created at tap time,
+   so every SoundCloud card gets a hidden pre-loaded widget: the latest
+   winner's eagerly (it drives the hero CTA), the rest as their card scrolls
+   near the viewport (evicted again when far away, to cap memory). A tap's
+   own touchstart runs a volume-0 play/pause "prime" that unlocks the audio,
+   and the click then plays for real — one tap, sound included. */
+const players = new Map();     // winner id → player record
+const poolWinners = new Map(); // winner id → winner data, rebuilt per render
+let playerIO = null;
+
+// the hero CTA is held disabled until its widget is READY: a play() queued
 // behind a still-loading widget fires after the tap gesture expires and
-// mobile browsers silently block it — that was the "tap twice" bug
+// mobile browsers silently block it
 function setLatestCtaReady(ready){
   const b = document.getElementById('playLatest');
   b.disabled = !ready;
   b.setAttribute('aria-busy', String(!ready));
 }
 
-function mountLatestPlayer(w){
-  premount = null;
-  setLatestCtaReady(true); // default: no premount, CTA uses the plain click path
-  if (!window.SC || w.host !== 'soundcloud') return;
+function mountCardPlayer(w, isLatest){
+  if (players.has(w.id)) return players.get(w.id);
+  if (!window.SC || w.host !== 'soundcloud') return null;
   const item = document.getElementById('w-' + w.id);
   const slot = item && item.querySelector('.embed-slot');
   const src = winnerEmbed(w);
-  if (!slot || !src) return;
+  if (!slot || !src) return null;
   const f = document.createElement('iframe');
   f.src = src.replace('auto_play=true', 'auto_play=false');
   f.height = 166;
@@ -670,41 +680,76 @@ function mountLatestPlayer(w){
   slot.replaceChildren(f);
   slot.classList.add('warm'); // rendered but collapsed until played
   const widget = SC.Widget(f);
-  premount = {slot, widget, item, ready:false, wantPlay:false, priming:false, primed:false, realPlay:false};
-  setLatestCtaReady(false);
-  setTimeout(() => setLatestCtaReady(true), 8000); // never strand the CTA if the widget hangs
+  const rec = {slot, widget, item, name: w.name, isLatest,
+               ready:false, primed:false, priming:false, realPlay:false, wantPlay:false};
+  players.set(w.id, rec);
+  if (isLatest){
+    premount = rec;
+    setLatestCtaReady(false);
+    setTimeout(() => setLatestCtaReady(true), 8000); // never strand the CTA if the widget hangs
+  }
   widget.bind(SC.Widget.Events.READY, () => {
-    premount.ready = true;
-    setLatestCtaReady(true);
-    if (premount.wantPlay){ premount.realPlay = true; widget.setVolume(100); widget.play(); }
+    rec.ready = true;
+    if (isLatest) setLatestCtaReady(true);
+    if (rec.wantPlay){ rec.wantPlay = false; rec.realPlay = true; widget.setVolume(100); widget.play(); }
   });
   widget.bind(SC.Widget.Events.PLAY, () => {
-    premount.primed = true;
-    if (premount.priming && !premount.realPlay){
+    rec.primed = true;
+    if (rec.priming && !rec.realPlay){
       // silent unlock cycle — stop straight away, leave no UI trace
-      premount.priming = false;
+      rec.priming = false;
       widget.pause(); widget.seekTo(0); widget.setVolume(100);
       return;
     }
-    premount.priming = false;
+    rec.priming = false;
     widget.setVolume(100);
-    setNowPlaying(item, w.name);
+    setNowPlaying(rec.item, rec.name);
   });
-  widget.bind(SC.Widget.Events.PAUSE,  () => { if (premount.realPlay) setNowPlaying(null); });
+  widget.bind(SC.Widget.Events.PAUSE,  () => { if (rec.realPlay && nowPlayingItem === rec.item) setNowPlaying(null); });
   widget.bind(SC.Widget.Events.FINISH, () => setNowPlaying(null));
+  return rec;
+}
+
+function evictCardPlayer(id){
+  const rec = players.get(id);
+  if (!rec || rec.isLatest || rec.slot.classList.contains('open')) return;
+  rec.slot.classList.remove('warm');
+  rec.slot.replaceChildren();
+  players.delete(id);
+}
+
+function initPlayerPool(latest){
+  players.clear();
+  premount = null;
+  setLatestCtaReady(true); // default: no premount, CTA uses the plain click path
+  mountCardPlayer(latest, true);
+  if (playerIO) playerIO.disconnect();
+  if (!('IntersectionObserver' in window)) return;
+  playerIO = new IntersectionObserver(entries => {
+    for (const e of entries){
+      const w = poolWinners.get(+e.target.id.slice(2)); // "w-<id>"
+      if (!w) continue;
+      if (e.isIntersecting) mountCardPlayer(w, false);
+      else evictCardPlayer(w.id);
+    }
+  }, {rootMargin:'800px 0px'});
+  poolWinners.forEach(w => {
+    const item = document.getElementById('w-' + w.id);
+    if (item && w.host === 'soundcloud') playerIO.observe(item);
+  });
 }
 
 // iOS refuses the first audio start on a fresh stream even inside a tap;
 // a volume-0 play/pause inside the user's first touch unlocks it, so the
-// hero CTA then plays on a single tap (touchstart fires before its click)
-function primeLatestPlayer(){
-  if (!premount || !premount.ready || premount.primed || premount.priming || premount.realPlay) return;
-  premount.priming = true;
-  premount.widget.setVolume(0);
-  premount.widget.play();
+// next play() produces sound (touchstart fires before a button's click)
+function primePlayer(rec){
+  if (!rec || !rec.ready || rec.primed || rec.priming || rec.realPlay) return;
+  rec.priming = true;
+  rec.widget.setVolume(0);
+  rec.widget.play();
 }
 ['touchstart','pointerdown'].forEach(ev =>
-  document.addEventListener(ev, primeLatestPlayer, {capture:true, passive:true}));
+  document.addEventListener(ev, () => primePlayer(premount), {capture:true, passive:true}));
 
 function togglePlayer(btn, item, src, w){
   const slot = item.querySelector('.embed-slot');
@@ -712,19 +757,20 @@ function togglePlayer(btn, item, src, w){
   if (openPlayer && openPlayer.slot !== slot) closePlayer(openPlayer);
   if (isOpen){ closePlayer({slot, btn, name: w.name}); return; }
 
-  if (premount && premount.slot === slot){ // latest card: reuse the ready widget
+  const rec = players.get(w.id) || mountCardPlayer(w, false); // mount now if the pool missed it
+  if (rec){
     slot.classList.remove('warm');
     slot.classList.add('open');
     btn.classList.add('on');
     btn.innerHTML = '■&nbsp; Close player';
     btn.setAttribute('aria-label', 'Close the mix player for ' + w.name);
-    openPlayer = {slot, btn, name: w.name, item, widget: premount.widget};
-    if (premount.ready){
-      premount.realPlay = true;
-      premount.widget.setVolume(100);
-      premount.widget.play();
+    openPlayer = {slot, btn, name: w.name, item, widget: rec.widget};
+    if (rec.ready){
+      rec.realPlay = true;
+      rec.widget.setVolume(100);
+      rec.widget.play();
     } else {
-      premount.wantPlay = true;
+      rec.wantPlay = true;
     }
     if (window.gsap) gsap.from(slot, {height:0, opacity:0, duration:.45, ease:'power2.out', clearProps:'all',
       onComplete: () => gsap.delayedCall(.1, () => ScrollTrigger.refresh())});
@@ -760,8 +806,12 @@ function togglePlayer(btn, item, src, w){
 }
 function closePlayer(p){
   p.slot.classList.remove('open');
-  if (premount && premount.slot === p.slot){
-    premount.widget.pause(); // keep the latest player mounted for instant replay
+  let pooled = null;
+  players.forEach(r => { if (r.slot === p.slot) pooled = r; });
+  if (pooled){
+    pooled.realPlay = false;
+    pooled.wantPlay = false;
+    pooled.widget.pause(); // keep the widget mounted for instant replay
     p.slot.classList.add('warm');
   } else {
     p.slot.replaceChildren();
@@ -831,7 +881,9 @@ function render(winners){
   document.getElementById('btnLatest').onclick =
     () => document.getElementById('w-' + latest.id).scrollIntoView({behavior: motionOK ? 'smooth' : 'auto', block:'center'});
 
-  mountLatestPlayer(latest);
+  poolWinners.clear();
+  sorted.forEach(w => poolWinners.set(w.id, w));
+  initPlayerPool(latest);
   initAnimations();
 }
 
