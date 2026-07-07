@@ -87,7 +87,12 @@
     padding:9px 18px; border-radius:2px; transition:transform .2s, box-shadow .2s;
   }
   .btn-latest:hover{transform:translateY(-2px); box-shadow:0 6px 22px var(--accent-soft)}
-  @media (max-width:720px){ .head-sub,.sync-pill span.txt{display:none} }
+  @media (max-width:720px){
+    .head-sub,.sync-pill span.txt{display:none}
+    /* secondary CTA on phones — same ghost styling as "Enter the competition" */
+    .btn-latest{background:transparent; color:var(--text); border:1px solid rgba(255,255,255,.25)}
+    .btn-latest:hover{background:rgba(255,255,255,.07); box-shadow:none}
+  }
 
   /* hero */
   .hero{
@@ -125,8 +130,8 @@
   }
   .eq i{width:5px; height:12px; background:linear-gradient(to top, #6c7178, #fff); border-radius:2px 2px 0 0; opacity:.85}
   .eq.playing i{
-    background:linear-gradient(to top, #a89a88, #fff6e8); opacity:1;
-    box-shadow:0 0 9px rgba(255,154,60,.55), 0 0 22px rgba(255,120,0,.25);
+    background-image:none; background-color:#fff; opacity:1;
+    box-shadow:0 0 9px rgba(255,255,255,.35), 0 0 20px rgba(255,255,255,.14);
   }
   .go-mix{
     margin-top:18px; font-family:var(--display); font-weight:700; letter-spacing:.28em;
@@ -627,12 +632,50 @@ document.getElementById('playLatest').addEventListener('click', () => {
   if (playBtn) playBtn.click(); // opens the SoundCloud player, which autoplays
 });
 
-let openPlayer = null;
+let openPlayer = null, premount = null;
+
+// pre-mount the latest winner's player (hidden) so the hero CTA can call
+// widget.play() synchronously inside the tap — mobile browsers block iframe
+// autoplay, which made the first taps do nothing
+function mountLatestPlayer(w){
+  premount = null;
+  if (!window.SC || w.host !== 'soundcloud') return;
+  const item = document.getElementById('w-' + w.id);
+  const slot = item && item.querySelector('.embed-slot');
+  const src = winnerEmbed(w);
+  if (!slot || !src) return;
+  const f = document.createElement('iframe');
+  f.src = src.replace('auto_play=true', 'auto_play=false');
+  f.height = 166;
+  f.allow = 'autoplay; encrypted-media';
+  f.title = 'Winning mix by ' + w.name;
+  slot.replaceChildren(f); // slot stays closed until played
+  const widget = SC.Widget(f);
+  premount = {slot, widget, item, ready:false, wantPlay:false};
+  widget.bind(SC.Widget.Events.READY,  () => { premount.ready = true; if (premount.wantPlay) widget.play(); });
+  widget.bind(SC.Widget.Events.PLAY,   () => setNowPlaying(item, w.name));
+  widget.bind(SC.Widget.Events.PAUSE,  () => setNowPlaying(null));
+  widget.bind(SC.Widget.Events.FINISH, () => setNowPlaying(null));
+}
+
 function togglePlayer(btn, item, src, w){
   const slot = item.querySelector('.embed-slot');
   const isOpen = slot.classList.contains('open');
   if (openPlayer && openPlayer.slot !== slot) closePlayer(openPlayer);
   if (isOpen){ closePlayer({slot, btn, name: w.name}); return; }
+
+  if (premount && premount.slot === slot){ // latest card: reuse the ready widget
+    slot.classList.add('open');
+    btn.classList.add('on');
+    btn.innerHTML = '■&nbsp; Close player';
+    btn.setAttribute('aria-label', 'Close the mix player for ' + w.name);
+    openPlayer = {slot, btn, name: w.name, item, widget: premount.widget};
+    if (premount.ready) premount.widget.play(); else premount.wantPlay = true;
+    if (window.gsap) gsap.from(slot, {height:0, opacity:0, duration:.45, ease:'power2.out', clearProps:'all',
+      onComplete: () => gsap.delayedCall(.1, () => ScrollTrigger.refresh())});
+    return;
+  }
+
   const f = document.createElement('iframe');
   f.src = src;
   f.height = w.host === 'mixcloud' ? 120 : 166;
@@ -662,7 +705,11 @@ function togglePlayer(btn, item, src, w){
 }
 function closePlayer(p){
   p.slot.classList.remove('open');
-  p.slot.replaceChildren();
+  if (premount && premount.slot === p.slot){
+    premount.widget.pause(); // keep the latest player mounted for instant replay
+  } else {
+    p.slot.replaceChildren();
+  }
   p.btn.classList.remove('on');
   p.btn.innerHTML = '▶&nbsp; Play the mix';
   if (p.name) p.btn.setAttribute('aria-label', 'Play the winning mix by ' + p.name);
@@ -689,7 +736,7 @@ function render(winners){
   const cta = el('article','tl-item cta-item left');
   cta.innerHTML =
     '<div class="node"></div>' +
-    '<div class="month-side">' + MONTHS[next.getMonth()] + ' <br>' + next.getFullYear() + '<small>Next up</small></div>' +
+    '<div class="month-side">' + MONTHS[next.getMonth()] + ' <br>' + next.getFullYear() + '<small>Coming Soon</small></div>' +
     '<div class="card-side"><div class="card"><div class="card-body">' +
     '<h3>Your name here?</h3>' +
     '<p>The next winner will appear at the top of this timeline automatically the moment Decoded announces it. Think your mix has what it takes?</p>' +
@@ -728,6 +775,7 @@ function render(winners){
   document.getElementById('btnLatest').onclick =
     () => document.getElementById('w-' + latest.id).scrollIntoView({behavior: motionOK ? 'smooth' : 'auto', block:'center'});
 
+  mountLatestPlayer(latest);
   initAnimations();
 }
 
