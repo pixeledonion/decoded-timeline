@@ -141,7 +141,10 @@
   }
   .go-mix::after{content:' ↓'}
   #playLatest::after{content:' ▶'; font-size:.6em; vertical-align:1px}
-  .go-mix:hover{background:rgba(255,255,255,.08); transform:translateY(-2px)}
+  .go-mix:disabled{opacity:.45; cursor:default}
+  @media (hover:hover){
+    .go-mix:hover:not(:disabled){background:rgba(255,255,255,.08); transform:translateY(-2px)}
+  }
   .go-mix[hidden]{display:none}
   .scroll-hint{
     display:block; width:max-content; margin:0 auto 48px; text-align:center;
@@ -637,8 +640,18 @@ let openPlayer = null, premount = null;
 // pre-mount the latest winner's player (hidden) so the hero CTA can call
 // widget.play() synchronously inside the tap — mobile browsers block iframe
 // autoplay, which made the first taps do nothing
+// the hero CTA is held disabled until the widget is READY: a play() queued
+// behind a still-loading widget fires after the tap gesture expires and
+// mobile browsers silently block it — that was the "tap twice" bug
+function setLatestCtaReady(ready){
+  const b = document.getElementById('playLatest');
+  b.disabled = !ready;
+  b.setAttribute('aria-busy', String(!ready));
+}
+
 function mountLatestPlayer(w){
   premount = null;
+  setLatestCtaReady(true); // default: no premount, CTA uses the plain click path
   if (!window.SC || w.host !== 'soundcloud') return;
   const item = document.getElementById('w-' + w.id);
   const slot = item && item.querySelector('.embed-slot');
@@ -652,7 +665,9 @@ function mountLatestPlayer(w){
   slot.replaceChildren(f); // slot stays closed until played
   const widget = SC.Widget(f);
   premount = {slot, widget, item, ready:false, wantPlay:false};
-  widget.bind(SC.Widget.Events.READY,  () => { premount.ready = true; if (premount.wantPlay) widget.play(); });
+  setLatestCtaReady(false);
+  setTimeout(() => setLatestCtaReady(true), 8000); // never strand the CTA if the widget hangs
+  widget.bind(SC.Widget.Events.READY,  () => { premount.ready = true; setLatestCtaReady(true); if (premount.wantPlay) widget.play(); });
   widget.bind(SC.Widget.Events.PLAY,   () => setNowPlaying(item, w.name));
   widget.bind(SC.Widget.Events.PAUSE,  () => setNowPlaying(null));
   widget.bind(SC.Widget.Events.FINISH, () => setNowPlaying(null));
