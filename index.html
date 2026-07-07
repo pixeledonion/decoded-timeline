@@ -691,7 +691,7 @@ function mountCardPlayer(w, isLatest){
   widget.bind(SC.Widget.Events.READY, () => {
     rec.ready = true;
     if (isLatest) setLatestCtaReady(true);
-    if (rec.wantPlay){ rec.wantPlay = false; rec.realPlay = true; widget.setVolume(100); widget.play(); }
+    if (rec.wantPlay){ rec.wantPlay = false; rec.realPlay = true; widget.setVolume(100); widget.play(); ensurePlaying(rec); }
   });
   widget.bind(SC.Widget.Events.PLAY, () => {
     rec.primed = true;
@@ -702,6 +702,7 @@ function mountCardPlayer(w, isLatest){
       return;
     }
     rec.priming = false;
+    gestureRetry = null; // playback confirmed — no retry needed
     widget.setVolume(100);
     setNowPlaying(rec.item, rec.name);
   });
@@ -748,8 +749,45 @@ function primePlayer(rec){
   rec.widget.setVolume(0);
   rec.widget.play();
 }
+
+// whichever pooled card is nearest the viewport gets primed by the user's
+// ordinary touches, so switching mixes mid-play works on the first tap
+function nearestPooledRec(){
+  let best = null, bestD = Infinity;
+  players.forEach(rec => {
+    const r = rec.item.getBoundingClientRect();
+    const d = Math.abs((r.top + r.bottom) / 2 - innerHeight / 2);
+    if (d < bestD){ bestD = d; best = rec; }
+  });
+  return bestD < innerHeight ? best : null;
+}
+
+// if a play attempt stays silent (widget still loading, or the browser
+// refused an out-of-gesture start), the next touch anywhere finishes it
+let gestureRetry = null;
+function ensurePlaying(rec){
+  setTimeout(() => {
+    if (!openPlayer || openPlayer.widget !== rec.widget) return;
+    rec.widget.isPaused(paused => { if (paused) gestureRetry = rec; });
+  }, 1200);
+}
+
 ['touchstart','pointerdown'].forEach(ev =>
-  document.addEventListener(ev, () => primePlayer(premount), {capture:true, passive:true}));
+  document.addEventListener(ev, () => {
+    if (gestureRetry){
+      const r = gestureRetry; gestureRetry = null;
+      if (openPlayer && openPlayer.widget === r.widget){
+        r.realPlay = true; r.widget.setVolume(100); r.widget.play();
+      }
+    }
+    // SC widgets pause one another when any starts, so ambient priming while
+    // a mix is playing would kill the listener's audio — only prime when idle
+    // (an intentional switch is still primed by the play button's touchstart)
+    if (!nowPlayingItem){
+      primePlayer(premount);
+      primePlayer(nearestPooledRec());
+    }
+  }, {capture:true, passive:true}));
 
 function togglePlayer(btn, item, src, w){
   const slot = item.querySelector('.embed-slot');
@@ -769,6 +807,7 @@ function togglePlayer(btn, item, src, w){
       rec.realPlay = true;
       rec.widget.setVolume(100);
       rec.widget.play();
+      ensurePlaying(rec);
     } else {
       rec.wantPlay = true;
     }
