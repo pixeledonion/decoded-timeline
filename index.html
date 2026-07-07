@@ -86,7 +86,9 @@
     text-transform:uppercase; color:#111; background:var(--accent); border:none; cursor:pointer;
     padding:9px 18px; border-radius:2px; transition:transform .2s, box-shadow .2s;
   }
-  .btn-latest:hover{transform:translateY(-2px); box-shadow:0 6px 22px var(--accent-soft)}
+  @media (hover:hover){
+    .btn-latest:hover{transform:translateY(-2px); box-shadow:0 6px 22px var(--accent-soft)}
+  }
   @media (max-width:720px){
     .head-sub,.sync-pill span.txt{display:none}
     /* secondary CTA on phones — same ghost styling as "Enter the competition" */
@@ -122,9 +124,11 @@
     transition:transform .2s, box-shadow .2s, background .2s;
   }
   .hero-cta .primary{background:var(--accent); color:#111}
-  .hero-cta .primary:hover{transform:translateY(-2px); box-shadow:0 8px 26px var(--accent-soft)}
   .hero-cta .ghost{border:1px solid rgba(255,255,255,.25); color:var(--text)}
-  .hero-cta .ghost:hover{background:rgba(255,255,255,.07); transform:translateY(-2px)}
+  @media (hover:hover){
+    .hero-cta .primary:hover{transform:translateY(-2px); box-shadow:0 8px 26px var(--accent-soft)}
+    .hero-cta .ghost:hover{background:rgba(255,255,255,.07); transform:translateY(-2px)}
+  }
   .eq{
     display:flex; align-items:flex-end; gap:5px; height:64px; margin-top:56px;
   }
@@ -212,14 +216,16 @@
     overflow:hidden; position:relative; transform-style:preserve-3d;
     transition:border-color .3s, box-shadow .3s;
   }
-  .card:hover{border-color:rgba(255,255,255,.35); box-shadow:0 18px 50px rgba(0,0,0,.5), 0 0 34px rgba(255,255,255,.08)}
+  @media (hover:hover){
+    .card:hover{border-color:rgba(255,255,255,.35); box-shadow:0 18px 50px rgba(0,0,0,.5), 0 0 34px rgba(255,255,255,.08)}
+    .card:hover .card-media img{filter:grayscale(0) contrast(1)}
+  }
   .card-media{position:relative; aspect-ratio:16/9.4; overflow:hidden; background:#0e0f12}
   .card-media img{
     width:100%; height:118%; object-fit:cover; display:block;
     filter:grayscale(.9) contrast(1.05); transition:filter .5s;
     will-change:transform;
   }
-  .card:hover .card-media img{filter:grayscale(0) contrast(1)}
   .card-media::after{
     content:''; position:absolute; inset:0;
     background:linear-gradient(to top, rgba(10,11,13,.85), transparent 55%);
@@ -251,10 +257,12 @@
     transition:transform .2s, box-shadow .2s, background .2s, color .2s;
   }
   .btn.play{background:var(--accent); color:#111; border:none}
-  .btn.play:hover{transform:translateY(-2px); box-shadow:0 6px 20px var(--accent-soft)}
   .btn.play.on{background:#111; color:#fff; box-shadow:inset 0 0 0 1px rgba(255,255,255,.4)}
   .btn.link{border:1px solid rgba(255,255,255,.22); color:var(--text); background:transparent}
-  .btn.link:hover{background:rgba(255,255,255,.07); transform:translateY(-2px)}
+  @media (hover:hover){
+    .btn.play:hover{transform:translateY(-2px); box-shadow:0 6px 20px var(--accent-soft)}
+    .btn.link:hover{background:rgba(255,255,255,.07); transform:translateY(-2px)}
+  }
   .embed-slot{margin-top:16px; display:none}
   .embed-slot.open{display:block}
   /* pre-mounted player: rendered but collapsed, so iOS treats it as live */
@@ -273,7 +281,9 @@
     background:var(--panel); color:var(--text); border:1px solid rgba(255,255,255,.3);
     font-size:1.15rem; line-height:1; transition:background .2s, transform .2s;
   }
-  .to-top:hover{background:#fff; color:#111; transform:translateY(-3px)}
+  @media (hover:hover){
+    .to-top:hover{background:#fff; color:#111; transform:translateY(-3px)}
+  }
   .to-top[hidden]{display:none}
 
   /* CTA card */
@@ -572,10 +582,23 @@ function buildCard(w, side){
   if (embedSrc){
     const play = el('button','btn play','▶&nbsp; Play the mix');
     play.setAttribute('aria-label', 'Play the winning mix by ' + w.name);
-    // the tap's own touchstart primes this card's pooled widget before click
-    ['touchstart','pointerdown'].forEach(ev =>
-      play.addEventListener(ev, () => primePlayer(players.get(w.id)), {passive:true}));
-    play.addEventListener('click', () => togglePlayer(play, item, embedSrc, w));
+    // Toggle on touchend directly: iOS can swallow the synthetic click after
+    // a tap (hover emulation), which left the previous mix closed but the
+    // tapped one silent. touchend is the raw gesture — always delivered.
+    let touchMoved = false, touchToggledAt = 0;
+    play.addEventListener('touchstart', () => { touchMoved = false; primePlayer(players.get(w.id)); }, {passive:true});
+    play.addEventListener('pointerdown', () => primePlayer(players.get(w.id)), {passive:true});
+    play.addEventListener('touchmove', () => { touchMoved = true; }, {passive:true});
+    play.addEventListener('touchend', e => {
+      if (touchMoved) return; // was a scroll, not a tap
+      e.preventDefault();     // suppress the synthetic mouse/click sequence
+      touchToggledAt = Date.now();
+      togglePlayer(play, item, embedSrc, w);
+    }, {passive:false});
+    play.addEventListener('click', () => {
+      if (Date.now() - touchToggledAt < 700) return; // already handled by touchend
+      togglePlayer(play, item, embedSrc, w);
+    });
     actions.appendChild(play);
   } else if (w.permalink){
     const listen = el('a','btn play','▶&nbsp; Listen ↗');
