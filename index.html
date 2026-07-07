@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mix of the Month — Winners Timeline · Decoded Magazine DJ Competition</title>
 <meta name="description" content="A living timeline of every Decoded Magazine Mix of the Month DJ Competition winner since the 2025 relaunch. Auto-updates as new winners are announced.">
-<link rel="icon" href="https://i0.wp.com/www.decodedmagazine.com/wp-content/uploads/2020/08/cropped-Decoded_Logo_Favicon_36.png?resize=32%2C32&ssl=1">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230a0b0d'/%3E%3Crect x='9' y='9' width='14' height='14' fill='%23ffffff' transform='rotate(45 16 16)'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Dosis:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -15,11 +15,11 @@
     --line:rgba(255,255,255,.08);
     --accent:#f2f3f5; --accent-soft:rgba(255,255,255,.22); --accent-text:#cfd4da;
     --text:#f2f3f5; --muted:#9aa0a8;
-    --sc:#ff5500; --mc:#7c4dff;
     --display:'Dosis',system-ui,sans-serif;
     --body:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
   }
   *{margin:0;padding:0;box-sizing:border-box}
+  html{overflow-x:hidden}
   /* no CSS scroll-behavior:smooth — it animates ScrollTrigger's internal
      scroll restoration during refresh() and corrupts every measured trigger
      position; smooth scrolling is done in JS instead */
@@ -124,8 +124,22 @@
     display:flex; align-items:flex-end; gap:5px; height:64px; margin-top:56px;
   }
   .eq i{width:5px; height:12px; background:linear-gradient(to top, #6c7178, #fff); border-radius:2px 2px 0 0; opacity:.85}
+  .eq.playing i{
+    background:linear-gradient(to top, #a89a88, #fff6e8); opacity:1;
+    box-shadow:0 0 9px rgba(255,154,60,.55), 0 0 22px rgba(255,120,0,.25);
+  }
+  .go-mix{
+    margin-top:18px; font-family:var(--display); font-weight:700; letter-spacing:.28em;
+    font-size:.68rem; text-transform:uppercase; color:var(--text);
+    background:transparent; border:1px solid rgba(255,255,255,.3); padding:10px 22px;
+    border-radius:2px; cursor:pointer; transition:background .2s, transform .2s;
+  }
+  .go-mix::after{content:' ↓'}
+  #playLatest::after{content:' ▶'; font-size:.6em; vertical-align:1px}
+  .go-mix:hover{background:rgba(255,255,255,.08); transform:translateY(-2px)}
+  .go-mix[hidden]{display:none}
   .scroll-hint{
-    position:absolute; bottom:26px; left:50%; transform:translateX(-50%);
+    display:block; width:max-content; margin:0 auto 48px; text-align:center;
     font-size:.62rem; letter-spacing:.3em; text-transform:uppercase; color:var(--muted);
   }
   .scroll-hint::after{
@@ -140,7 +154,7 @@
     font-size:clamp(1.4rem,4vw,2.2rem); text-align:center; margin-bottom:8px;
   }
   .tl-title em{font-style:normal; color:transparent; -webkit-text-stroke:1px rgba(255,255,255,.65)}
-  .tl-count{text-align:center; color:var(--muted); font-size:.85rem; margin-bottom:70px}
+  .tl-count{text-align:center; color:var(--muted); font-size:.85rem; margin-bottom:38px}
   .spine-wrap{position:relative}
   .spine{
     position:absolute; top:0; bottom:0; left:50%; width:2px; transform:translateX(-50%);
@@ -216,13 +230,6 @@
     text-decoration:none;
   }
   .chip.genre{background:rgba(255,255,255,.07); color:var(--muted); border:1px solid var(--line)}
-  .chip.host{transition:transform .2s, box-shadow .2s}
-  .chip.host:hover{transform:translateY(-2px)}
-  .chip.host.sc{background:rgba(255,85,0,.12); color:var(--sc); border:1px solid rgba(255,85,0,.4)}
-  .chip.host.sc:hover{box-shadow:0 4px 16px rgba(255,85,0,.3)}
-  .chip.host.mc{background:rgba(124,77,255,.12); color:#a68eff; border:1px solid rgba(124,77,255,.45)}
-  .chip.host.mc:hover{box-shadow:0 4px 16px rgba(124,77,255,.3)}
-  .chip.host svg{width:15px; height:15px; flex:none}
   .card-body h3{
     font-family:var(--display); font-weight:800; text-transform:uppercase;
     font-size:1.65rem; letter-spacing:.04em; line-height:1.1;
@@ -248,6 +255,16 @@
     font-size:.58rem; font-weight:700; letter-spacing:.2em; text-transform:uppercase;
     background:#fff; color:#111; padding:4px 10px; border-radius:2px;
   }
+
+  /* scroll to top */
+  .to-top{
+    position:fixed; right:16px; bottom:16px; z-index:45;
+    width:46px; height:46px; border-radius:2px; cursor:pointer;
+    background:var(--panel); color:var(--text); border:1px solid rgba(255,255,255,.3);
+    font-size:1.15rem; line-height:1; transition:background .2s, transform .2s;
+  }
+  .to-top:hover{background:#fff; color:#111; transform:translateY(-3px)}
+  .to-top[hidden]{display:none}
 
   /* CTA card */
   .cta-item .card{border-style:dashed; border-color:rgba(255,255,255,.45); background:rgba(255,255,255,.04)}
@@ -338,12 +355,14 @@
     <a class="ghost" href="https://www.decodedmagazine.com/decoded-magazine-dj-competition/" target="_blank" rel="noopener">Enter the competition ↗</a>
   </div>
   <div class="eq" id="eq" aria-hidden="true"></div>
-  <span class="scroll-hint" aria-hidden="true">Scroll</span>
+  <button class="go-mix" id="playLatest">Play the latest Winning Mix</button>
+  <button class="go-mix" id="goMix" hidden>Go To Playing Mix</button>
 </section>
 
 <main class="timeline" id="timeline">
   <h2 class="tl-title">The <em>Hall of Fame</em></h2>
   <p class="tl-count" id="tlCount"></p>
+  <span class="scroll-hint" aria-hidden="true">Scroll</span>
   <div class="spine-wrap" id="spineWrap">
     <div class="spine"><div class="spine-fill" id="spineFill"></div></div>
     <div id="tlItems"></div>
@@ -351,6 +370,8 @@
 </main>
 
 <nav class="dot-nav" id="dotNav" aria-label="Jump to winner"></nav>
+
+<button class="to-top" id="toTop" hidden aria-label="Scroll back to top">↑</button>
 
 <footer>
   <p>An unofficial fan-made timeline of the
@@ -361,6 +382,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/ScrollTrigger.min.js"></script>
+<script src="https://w.soundcloud.com/player/api.js"></script>
 <script>
 /* ============================================================
    DATA — seed winners (May 2025 relaunch → May 2026).
@@ -372,15 +394,15 @@ const WP_API = 'https://www.decodedmagazine.com/wp-json/wp/v2/posts';
 const IMG = p => 'https://i0.wp.com/www.decodedmagazine.com/wp-content/uploads' + p + '?w=900&ssl=1';
 
 const SEED = [
-  {id:65051,name:'Molotov',month:4,year:2025,article:'https://www.decodedmagazine.com/mix-of-the-month-may-winner-molotov/',host:'soundcloud',track:'2108721030',permalink:'https://soundcloud.com/decodedmagazine/mix-of-the-month-winner-may-2025-molotov',image:IMG('/2025/06/Molotov-DJ.jpeg')},
-  {id:65253,name:'Uncle GRAMpa',month:5,year:2025,article:'https://www.decodedmagazine.com/mix-of-the-month-june-winner-uncle-grampa/',host:'soundcloud',track:'2124428511',permalink:'https://soundcloud.com/decodedmagazine/mix-of-the-month-winner-june-2025-uncle-grampa',image:IMG('/2025/07/Press-shot-scaled.jpeg')},
+  {id:65051,name:'Molotov',month:4,year:2025,genre:'Progressive',article:'https://www.decodedmagazine.com/mix-of-the-month-may-winner-molotov/',host:'soundcloud',track:'2108721030',permalink:'https://soundcloud.com/decodedmagazine/mix-of-the-month-winner-may-2025-molotov',image:IMG('/2025/06/Molotov-DJ.jpeg')},
+  {id:65253,name:'Uncle GRAMpa',month:5,year:2025,genre:'Breaks & DnB',article:'https://www.decodedmagazine.com/mix-of-the-month-june-winner-uncle-grampa/',host:'soundcloud',track:'2124428511',permalink:'https://soundcloud.com/decodedmagazine/mix-of-the-month-winner-june-2025-uncle-grampa',image:IMG('/2025/07/Press-shot-scaled.jpeg')},
   {id:65453,name:'DJ LP',month:6,year:2025,genre:'House',article:'https://www.decodedmagazine.com/mix-of-the-month-july-winner-dj-lp/',host:'soundcloud',track:'2140367328',permalink:'https://soundcloud.com/decodedmagazine/mix-of-the-month-winner-july-2025-dj-lp',image:IMG('/2025/08/Press-shot-scaled-e1754068866735.jpg')},
   {id:66030,name:'MJ',month:7,year:2025,article:'https://www.decodedmagazine.com/introducing-mj-augusts-decoded-magazine-mix-of-the-month-winner/',host:'soundcloud',track:'2165294742',permalink:'https://soundcloud.com/decodedmagazine/mix-of-the-month-winner-august-2025-mj',image:IMG('/2025/09/MJ-1-scaled.jpg')},
   {id:66259,name:'PWNDA',month:8,year:2025,genre:'House',article:'https://www.decodedmagazine.com/introducing-pwnda-september-decoded-magazine-mix-of-the-month-winner/',host:'soundcloud',track:'2181484991',permalink:'https://soundcloud.com/decodedmagazine/mix-of-the-month-winner-september-2025-pwnda',image:IMG('/2025/10/PWNDA-1-scaled.jpg')},
   {id:66712,name:'Alan Heart',month:9,year:2025,genre:'Ambient & Chillout',article:'https://www.decodedmagazine.com/introducing-alan-heart-october-decoded-magazine-mix-of-the-month-winner/',host:'soundcloud',track:'2212524662',permalink:'https://soundcloud.com/decodedmagazine/mix-of-the-month-winner-october-2025-alan-heart',image:IMG('/2025/11/Alan-Heart-press-shot-web-1-scaled.png')},
   {id:66966,name:'Richard Q',month:10,year:2025,article:'https://www.decodedmagazine.com/introducing-our-november-mix-of-the-month-winner-richard-q/',host:'soundcloud',track:'2228443280',permalink:'https://soundcloud.com/decodedmagazine/mix-of-the-month-winner-november-2025-richard-q',image:IMG('/2025/12/Press-shot-scaled.jpg')},
   {id:67095,name:'Wittak',month:11,year:2025,genre:'Breaks & DnB',moty:true,article:'https://www.decodedmagazine.com/introducing-mix-of-the-year-winner-wittak/',host:'soundcloud',track:'2244415493',permalink:'https://soundcloud.com/decodedmagazine/mix-of-the-month-winner-december-2025-and-mix-of-the-year-wittak',image:IMG('/2026/01/Wittak-NSa-scaled.jpeg')},
-  {id:67496,name:'Crowley',month:0,year:2026,genre:'Progressive House',article:'https://www.decodedmagazine.com/mix-of-the-month-january-2026-winner-crowley/',host:'soundcloud',track:'2265994562',permalink:'https://soundcloud.com/decodedmagazine/mix-of-the-month-winner-january-2026-crowley',image:IMG('/2026/02/Crowley-Press-Shot-scaled-e1771047647111.jpg')},
+  {id:67496,name:'Crowley',month:0,year:2026,article:'https://www.decodedmagazine.com/mix-of-the-month-january-2026-winner-crowley/',host:'soundcloud',track:'2265994562',permalink:'https://soundcloud.com/decodedmagazine/mix-of-the-month-winner-january-2026-crowley',image:IMG('/2026/02/Crowley-Press-Shot-scaled-e1771047647111.jpg')},
   {id:67869,name:'Riley Bee',month:1,year:2026,article:'https://www.decodedmagazine.com/meet-our-february-2026-mix-of-the-month-winner-riley-bee/',host:'soundcloud',track:'2282521136',permalink:'https://soundcloud.com/decodedmagazine/mix-of-the-month-winner-february-2026-riley-bee',image:IMG('/2026/03/Riley-Bee-scaled.jpg')},
   {id:68127,name:'Aqueous',month:2,year:2026,genre:'Breaks & DnB',article:'https://www.decodedmagazine.com/meet-our-march-mix-of-the-month-winner-aqueous/',host:'soundcloud',track:'2301654137',permalink:'https://soundcloud.com/decodedmagazine/mix-of-the-month-winner-march-2026-aqueous',image:IMG('/2026/04/Aqueous-Monkey-Loft-25-scaled.jpg')},
   {id:68322,name:'Toxic Shame Squadron',month:3,year:2026,article:'https://www.decodedmagazine.com/meet-our-april-2026-mix-of-the-month-winner-toxic-shame-squadron/',host:'soundcloud',track:'2316885677',permalink:'https://soundcloud.com/decodedmagazine/mix-of-the-month-winner-april-2026-toxic-shame-squadron',image:IMG('/2026/05/TSS-promo-pic-landscape-scaled.jpeg')},
@@ -392,7 +414,7 @@ const SEED = [
    ============================================================ */
 const decodeEntities = s => { const t = document.createElement('textarea'); t.innerHTML = s; return t.value; };
 
-function parseWinnerPost(post){
+function parseWinnerPost(post, genreOf = () => null){
   const title = decodeEntities(post.title.rendered).replace(/\s+/g,' ').trim();
   const lower = title.toLowerCase();
   const isWinner = (lower.includes('mix of the month') || lower.includes('mix of the year')) &&
@@ -432,6 +454,7 @@ function parseWinnerPost(post){
 
   return {
     id: post.id, name, month, year,
+    genre: genreOf(post) || undefined,
     moty: lower.includes('mix of the year'),
     article: post.link,
     host: host || 'soundcloud',
@@ -441,28 +464,45 @@ function parseWinnerPost(post){
   };
 }
 
+// genres = the child categories of Decoded's "Mixes" category (House, Techno, …)
+async function fetchGenreMap(){
+  const res = await fetch('https://www.decodedmagazine.com/wp-json/wp/v2/categories?per_page=100&_fields=id,name,parent');
+  if (!res.ok) return {};
+  const cats = await res.json();
+  const mixes = cats.find(c => decodeEntities(c.name).toLowerCase() === 'mixes');
+  const map = {};
+  if (mixes) cats.forEach(c => { if (c.parent === mixes.id) map[c.id] = decodeEntities(c.name); });
+  return map;
+}
+
 async function fetchLiveWinners(){
   const url = WP_API + '?' + new URLSearchParams({
     search: 'mix of the month winner', per_page: '50', orderby: 'date', order: 'desc',
-    _fields: 'id,date,link,title,content,jetpack_featured_media_url',
+    _fields: 'id,date,link,title,content,categories,jetpack_featured_media_url',
   });
-  const res = await fetch(url);
+  const [genreMap, res] = await Promise.all([fetchGenreMap(), fetch(url)]);
   if (!res.ok) throw new Error('HTTP ' + res.status);
   const posts = await res.json();
+  const genreOf = p => (p.categories || []).map(id => genreMap[id]).find(Boolean) || null;
+
+  // keep seed badges in sync with how Decoded categorises the posts today
+  let genreChanged = false;
+  posts.forEach(p => {
+    const seeded = SEED.find(s => s.id === p.id);
+    if (seeded && (seeded.genre || null) !== genreOf(p)){
+      seeded.genre = genreOf(p) || undefined;
+      genreChanged = true;
+    }
+  });
+
   const known = new Set(SEED.map(w => w.id));
-  return posts.map(parseWinnerPost).filter(w => w && !known.has(w.id));
+  const fresh = posts.filter(p => !known.has(p.id)).map(p => parseWinnerPost(p, genreOf)).filter(Boolean);
+  return { fresh, genreChanged };
 }
 
 /* ============================================================
    RENDER
    ============================================================ */
-const HOST_META = {
-  soundcloud: { label:'SoundCloud', cls:'sc',
-    svg:'<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M1.5 15.5v-3.2h.9v3.2h-.9zm2-4.6v4.6h.9v-4.6h-.9zm2-1.2v5.8h.9V9.7h-.9zm2-.6v6.4h.9V9.1h-.9zm2 .2v6.2h.9V9.3h-.9zm2-1.6v7.8h.9V7.7h-.9zm7.6 2.5a3 3 0 0 0-1-.17c-.3-2-2-3.53-4.1-3.53-.5 0-1 .1-1.4.26-.2.07-.2.15-.2.3v6.94h6.7a2.4 2.4 0 0 0 0-4.8z"/></svg>' },
-  mixcloud: { label:'Mixcloud', cls:'mc',
-    svg:'<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 15.5 5.2 9h1.4l2 5.7L10.5 9h1.4l2.2 6.5h-1.5l-1.4-4.3-1.9 4.3H8.1L6.3 11.2l-1.5 4.3H3zm13.6 0 2.5-3.2-2.4-3.3h1.7l1.6 2.2 1.6-2.2h1.7l-2.4 3.2 2.5 3.3h-1.7l-1.7-2.3-1.7 2.3h-1.7z"/></svg>' },
-};
-
 function scEmbed(track){
   return 'https://w.soundcloud.com/player/?url=' +
     encodeURIComponent('https://api.soundcloud.com/tracks/' + track) +
@@ -506,17 +546,13 @@ function buildCard(w, side){
   const body = el('div','card-body');
   if (w.isNew) body.appendChild(el('span','badge-new','New'));
 
-  const chips = el('div','chips');
-  if (w.genre) chips.appendChild(el('span','chip genre', w.genre));
-  const hm = HOST_META[w.host] || HOST_META.soundcloud;
-  const host = el(w.permalink ? 'a' : 'span', 'chip host ' + hm.cls, hm.svg + hm.label);
-  if (w.permalink){
-    host.href = w.permalink; host.target = '_blank'; host.rel = 'noopener';
-    host.title = 'Open the winning mix on ' + hm.label;
-    host.setAttribute('aria-label', 'Open ' + w.name + '’s winning mix on ' + hm.label + ' (opens in new tab)');
+  if (w.genre){ // only when Decoded actually categorised the mix
+    const chips = el('div','chips');
+    const genreChip = el('span','chip genre');
+    genreChip.textContent = w.genre;
+    chips.appendChild(genreChip);
+    body.appendChild(chips);
   }
-  chips.appendChild(host);
-  body.appendChild(chips);
 
   const h3 = el('h3'); h3.textContent = w.name; body.appendChild(h3);
   body.appendChild(el('p','won-line','Mix of the Month · ' + monthName + ' ' + w.year + (w.moty ? ' — crowned Mix of the Year' : '')));
@@ -548,6 +584,49 @@ function buildCard(w, side){
   return item;
 }
 
+/* ---- now-playing state: drives the hero equalizer + its CTAs ---- */
+let nowPlayingItem = null, eqTweens = [], latestCard = null;
+function eqStart(){
+  document.getElementById('eq').classList.add('playing'); // warm colour even with reduced motion
+  if (!window.gsap || eqTweens.length || !motionOK) return;
+  document.querySelectorAll('#eq i').forEach(bar => {
+    eqTweens.push(gsap.to(bar, {height: gsap.utils.random(10,64), duration: gsap.utils.random(.28,.6),
+      repeat:-1, yoyo:true, ease:'sine.inOut', delay: gsap.utils.random(0,.4), repeatRefresh:true}));
+  });
+}
+function eqStop(){
+  document.getElementById('eq').classList.remove('playing');
+  eqTweens.forEach(t => t.kill());
+  eqTweens = [];
+  if (window.gsap) gsap.to('#eq i', {height: () => gsap.utils.random(6,16), duration:.4, ease:'power2.out'});
+}
+function setNowPlaying(item, name){
+  nowPlayingItem = item;
+  const goMix = document.getElementById('goMix');
+  goMix.hidden = !item;
+  document.getElementById('playLatest').hidden = !!item;
+  if (item){
+    goMix.setAttribute('aria-label', 'Scroll to the mix that’s playing' + (name ? ' — ' + name : ''));
+    eqStart();
+  } else {
+    eqStop();
+  }
+}
+document.getElementById('goMix').addEventListener('click', () => {
+  if (nowPlayingItem) nowPlayingItem.scrollIntoView({behavior: motionOK ? 'smooth' : 'auto', block:'center'});
+});
+document.getElementById('playLatest').addEventListener('click', () => {
+  const item = latestCard && document.getElementById(latestCard.id);
+  if (!item) return;
+  // no scrolling — start the mix and stay put ("Go To Playing Mix" can take you there)
+  if (openPlayer && openPlayer.item === item){
+    if (openPlayer.widget) openPlayer.widget.play(); // already open, just paused — resume
+    return;
+  }
+  const playBtn = item.querySelector('button.btn.play');
+  if (playBtn) playBtn.click(); // opens the SoundCloud player, which autoplays
+});
+
 let openPlayer = null;
 function togglePlayer(btn, item, src, w){
   const slot = item.querySelector('.embed-slot');
@@ -564,7 +643,18 @@ function togglePlayer(btn, item, src, w){
   btn.classList.add('on');
   btn.innerHTML = '■&nbsp; Close player';
   btn.setAttribute('aria-label', 'Close the mix player for ' + w.name);
-  openPlayer = {slot, btn, name: w.name};
+  openPlayer = {slot, btn, name: w.name, item};
+
+  // equalizer + hero CTAs follow the widget's real play state
+  if (window.SC && src.includes('soundcloud.com')){
+    const widget = SC.Widget(f);
+    openPlayer.widget = widget;
+    widget.bind(SC.Widget.Events.PLAY,   () => setNowPlaying(item, w.name));
+    widget.bind(SC.Widget.Events.PAUSE,  () => setNowPlaying(null));
+    widget.bind(SC.Widget.Events.FINISH, () => setNowPlaying(null));
+  } else {
+    setNowPlaying(item, w.name); // Mixcloud / no widget API: treat open as playing
+  }
   // refresh must run outside the tween's render tick — a synchronous
   // refresh mid-tick miscalculates every trigger's position by -scrollY
   if (window.gsap) gsap.from(slot, {height:0, opacity:0, duration:.45, ease:'power2.out', clearProps:'all',
@@ -577,6 +667,7 @@ function closePlayer(p){
   p.btn.innerHTML = '▶&nbsp; Play the mix';
   if (p.name) p.btn.setAttribute('aria-label', 'Play the winning mix by ' + p.name);
   if (openPlayer && openPlayer.slot === p.slot) openPlayer = null;
+  setNowPlaying(null);
   if (window.gsap && window.ScrollTrigger) gsap.delayedCall(.1, () => ScrollTrigger.refresh());
 }
 
@@ -586,13 +677,14 @@ function render(winners){
   wrap.replaceChildren();
   nav.replaceChildren();
   openPlayer = null;
+  setNowPlaying(null);
 
   const chrono = [...winners].sort((a,b) => sortKey(a) - sortKey(b));
   chrono.forEach((w,i) => w.seq = String(i+1).padStart(2,'0'));
   const sorted = [...chrono].reverse(); // newest first
   const latest = sorted[0], oldest = chrono[0];
 
-  // "your name here" CTA card leads the timeline
+  // "your name here" CTA card leads the timeline again
   const next = new Date(latest.year, latest.month + 1, 1);
   const cta = el('article','tl-item cta-item left');
   cta.innerHTML =
@@ -624,8 +716,13 @@ function render(winners){
     nav.appendChild(dot);
   });
 
+  // hero "play latest" CTA targets the newest winner
+  latestCard = { id: 'w-' + latest.id };
+  document.getElementById('playLatest').setAttribute('aria-label',
+    'Play the latest winning mix by ' + latest.name + ' — ' + MONTHS[latest.month] + ' ' + latest.year);
+
   document.getElementById('tlCount').textContent =
-    sorted.length + ' winners and counting · newest first · ' + MONTHS[latest.month] + ' ' + latest.year +
+    sorted.length + ' winners and counting · ' + MONTHS[latest.month] + ' ' + latest.year +
     ' back to ' + MONTHS[oldest.month] + ' ' + oldest.year;
 
   document.getElementById('btnLatest').onclick =
@@ -641,7 +738,11 @@ const motionOK = !window.matchMedia('(prefers-reduced-motion: reduce)').matches 
 
 function heroIntro(){
   const eq = document.getElementById('eq');
-  for (let i = 0; i < 28; i++) eq.appendChild(document.createElement('i'));
+  for (let i = 0; i < 28; i++){
+    const bar = document.createElement('i');
+    bar.style.height = (6 + Math.random() * 10) + 'px'; // idle until a mix plays
+    eq.appendChild(bar);
+  }
   if (!motionOK) return;
   gsap.registerPlugin(ScrollTrigger);
   // CSS scroll-behavior:smooth animates ScrollTrigger's internal scroll
@@ -654,11 +755,6 @@ function heroIntro(){
   ScrollTrigger.addEventListener('refresh', () => document.documentElement.style.scrollBehavior = '');
   gsap.from('.hero h1 .row span', {yPercent:110, duration:1, stagger:.12, ease:'power4.out', delay:.15});
   gsap.from('.hero-kicker, .hero-sub, .hero-cta', {opacity:0, y:24, duration:.9, stagger:.12, ease:'power2.out', delay:.5});
-  document.querySelectorAll('#eq i').forEach(bar => {
-    gsap.to(bar, {height: gsap.utils.random(10,64), duration: gsap.utils.random(.28,.6),
-      repeat:-1, yoyo:true, ease:'sine.inOut', delay: gsap.utils.random(0,.5),
-      repeatRefresh:true});
-  });
   // The fade is driven straight from scrollY rather than a ScrollTrigger:
   // trigger positions can be corrupted by refreshes while scrolled (which
   // left the hero stuck faded), whereas this mapping is stateless — at
@@ -684,6 +780,10 @@ function initAnimations(){
   gsap.registerPlugin(ScrollTrigger);
   ScrollTrigger.getAll().forEach(t => { if (t.vars.id !== 'hero') t.kill(); });
 
+  // phones: cards fade up — sideways reveals overflow the viewport and
+  // let mobile browsers scroll horizontally
+  const mobile = window.matchMedia('(max-width:880px)').matches;
+
   // spine draws with scroll
   gsap.fromTo('#spineFill', {scaleY:0}, {scaleY:1, ease:'none',
     scrollTrigger:{trigger:'#spineWrap', start:'top 70%', end:'bottom 65%', scrub:.4}});
@@ -694,11 +794,17 @@ function initAnimations(){
     const month = item.querySelector('.month-side');
     const img = item.querySelector('.card-media img');
 
-    gsap.from(card, {x: fromRight ? 90 : -90, opacity:0, rotate: fromRight ? 1.5 : -1.5,
-      duration:.9, ease:'power3.out',
-      scrollTrigger:{trigger:item, start:'top 82%', once:true}});
-    if (month) gsap.from(month, {x: fromRight ? -60 : 60, opacity:0, duration:.9, ease:'power3.out',
-      scrollTrigger:{trigger:item, start:'top 82%', once:true}});
+    if (card) gsap.from(card, mobile
+      ? {y:56, opacity:0, duration:.9, ease:'power3.out',
+         scrollTrigger:{trigger:item, start:'top 85%', once:true}}
+      : {x: fromRight ? 90 : -90, opacity:0, rotate: fromRight ? 1.5 : -1.5,
+         duration:.9, ease:'power3.out',
+         scrollTrigger:{trigger:item, start:'top 82%', once:true}});
+    if (month) gsap.from(month, mobile
+      ? {y:36, opacity:0, duration:.8, ease:'power3.out',
+         scrollTrigger:{trigger:item, start:'top 85%', once:true}}
+      : {x: fromRight ? -60 : 60, opacity:0, duration:.9, ease:'power3.out',
+         scrollTrigger:{trigger:item, start:'top 82%', once:true}});
     if (img) gsap.fromTo(img, {yPercent:-9}, {yPercent:0, ease:'none',
       scrollTrigger:{trigger:item, start:'top bottom', end:'bottom top', scrub:true}});
 
@@ -727,8 +833,12 @@ function initAnimations(){
    BOOT
    ============================================================ */
 const pill = document.getElementById('syncPill'), pillTxt = document.getElementById('syncTxt');
-window.addEventListener('scroll', () =>
-  document.getElementById('siteHead').classList.toggle('scrolled', scrollY > 40), {passive:true});
+window.addEventListener('scroll', () => {
+  document.getElementById('siteHead').classList.toggle('scrolled', scrollY > 40);
+  document.getElementById('toTop').hidden = scrollY < innerHeight * .8;
+}, {passive:true});
+document.getElementById('toTop').addEventListener('click', () =>
+  window.scrollTo({top:0, behavior: motionOK ? 'smooth' : 'auto'}));
 
 // dot nav follows whichever card is nearest the viewport centre
 function trackDots(){
@@ -736,7 +846,7 @@ function trackDots(){
   const update = () => {
     ticking = false;
     let best = null, bestD = Infinity;
-    document.querySelectorAll('.tl-item:not(.cta-item)').forEach(it => {
+    document.querySelectorAll('.tl-item:not(.cta-item):not(.next-marker)').forEach(it => {
       const r = it.getBoundingClientRect();
       const d = Math.abs((r.top + r.bottom) / 2 - innerHeight / 2);
       if (d < bestD){ bestD = d; best = it.id; }
@@ -763,13 +873,13 @@ render(SEED);
 trackDots();
 
 fetchLiveWinners()
-  .then(fresh => {
+  .then(({fresh, genreChanged}) => {
     pill.classList.add('live');
     if (fresh.length){
       pillTxt.textContent = 'Live · ' + fresh.length + ' new winner' + (fresh.length > 1 ? 's' : '');
       render([...SEED, ...fresh]);
-      // land the user near the newest arrival's month tag in the count line
     } else {
+      if (genreChanged) render(SEED); // badges drifted from the snapshot — redraw
       pillTxt.textContent = 'Live · up to date';
     }
   })
