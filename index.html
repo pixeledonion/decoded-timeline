@@ -257,6 +257,8 @@
   .btn.link:hover{background:rgba(255,255,255,.07); transform:translateY(-2px)}
   .embed-slot{margin-top:16px; display:none}
   .embed-slot.open{display:block}
+  /* pre-mounted player: rendered but collapsed, so iOS treats it as live */
+  .embed-slot.warm{display:block; margin-top:0; height:0; overflow:hidden}
   .embed-slot iframe{width:100%; border:0; border-radius:4px; display:block}
   .badge-new{
     position:absolute; top:-11px; left:18px;
@@ -628,7 +630,10 @@ document.getElementById('playLatest').addEventListener('click', () => {
   if (!item) return;
   // no scrolling — start the mix and stay put ("Go To Playing Mix" can take you there)
   if (openPlayer && openPlayer.item === item){
-    if (openPlayer.widget) openPlayer.widget.play(); // already open, just paused — resume
+    if (openPlayer.widget){ // already open, just paused — resume
+      if (premount && premount.widget === openPlayer.widget){ premount.realPlay = true; premount.widget.setVolume(100); }
+      openPlayer.widget.play();
+    }
     return;
   }
   const playBtn = item.querySelector('button.btn.play');
@@ -662,16 +667,44 @@ function mountLatestPlayer(w){
   f.height = 166;
   f.allow = 'autoplay; encrypted-media';
   f.title = 'Winning mix by ' + w.name;
-  slot.replaceChildren(f); // slot stays closed until played
+  slot.replaceChildren(f);
+  slot.classList.add('warm'); // rendered but collapsed until played
   const widget = SC.Widget(f);
-  premount = {slot, widget, item, ready:false, wantPlay:false};
+  premount = {slot, widget, item, ready:false, wantPlay:false, priming:false, primed:false, realPlay:false};
   setLatestCtaReady(false);
   setTimeout(() => setLatestCtaReady(true), 8000); // never strand the CTA if the widget hangs
-  widget.bind(SC.Widget.Events.READY,  () => { premount.ready = true; setLatestCtaReady(true); if (premount.wantPlay) widget.play(); });
-  widget.bind(SC.Widget.Events.PLAY,   () => setNowPlaying(item, w.name));
-  widget.bind(SC.Widget.Events.PAUSE,  () => setNowPlaying(null));
+  widget.bind(SC.Widget.Events.READY, () => {
+    premount.ready = true;
+    setLatestCtaReady(true);
+    if (premount.wantPlay){ premount.realPlay = true; widget.setVolume(100); widget.play(); }
+  });
+  widget.bind(SC.Widget.Events.PLAY, () => {
+    premount.primed = true;
+    if (premount.priming && !premount.realPlay){
+      // silent unlock cycle — stop straight away, leave no UI trace
+      premount.priming = false;
+      widget.pause(); widget.seekTo(0); widget.setVolume(100);
+      return;
+    }
+    premount.priming = false;
+    widget.setVolume(100);
+    setNowPlaying(item, w.name);
+  });
+  widget.bind(SC.Widget.Events.PAUSE,  () => { if (premount.realPlay) setNowPlaying(null); });
   widget.bind(SC.Widget.Events.FINISH, () => setNowPlaying(null));
 }
+
+// iOS refuses the first audio start on a fresh stream even inside a tap;
+// a volume-0 play/pause inside the user's first touch unlocks it, so the
+// hero CTA then plays on a single tap (touchstart fires before its click)
+function primeLatestPlayer(){
+  if (!premount || !premount.ready || premount.primed || premount.priming || premount.realPlay) return;
+  premount.priming = true;
+  premount.widget.setVolume(0);
+  premount.widget.play();
+}
+['touchstart','pointerdown'].forEach(ev =>
+  document.addEventListener(ev, primeLatestPlayer, {capture:true, passive:true}));
 
 function togglePlayer(btn, item, src, w){
   const slot = item.querySelector('.embed-slot');
@@ -680,12 +713,19 @@ function togglePlayer(btn, item, src, w){
   if (isOpen){ closePlayer({slot, btn, name: w.name}); return; }
 
   if (premount && premount.slot === slot){ // latest card: reuse the ready widget
+    slot.classList.remove('warm');
     slot.classList.add('open');
     btn.classList.add('on');
     btn.innerHTML = '■&nbsp; Close player';
     btn.setAttribute('aria-label', 'Close the mix player for ' + w.name);
     openPlayer = {slot, btn, name: w.name, item, widget: premount.widget};
-    if (premount.ready) premount.widget.play(); else premount.wantPlay = true;
+    if (premount.ready){
+      premount.realPlay = true;
+      premount.widget.setVolume(100);
+      premount.widget.play();
+    } else {
+      premount.wantPlay = true;
+    }
     if (window.gsap) gsap.from(slot, {height:0, opacity:0, duration:.45, ease:'power2.out', clearProps:'all',
       onComplete: () => gsap.delayedCall(.1, () => ScrollTrigger.refresh())});
     return;
@@ -722,6 +762,7 @@ function closePlayer(p){
   p.slot.classList.remove('open');
   if (premount && premount.slot === p.slot){
     premount.widget.pause(); // keep the latest player mounted for instant replay
+    p.slot.classList.add('warm');
   } else {
     p.slot.replaceChildren();
   }
