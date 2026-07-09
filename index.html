@@ -462,23 +462,53 @@ function parseWinnerPost(post, genreOf = () => null){
          : (month > posted.getMonth() ? posted.getFullYear() - 1 : posted.getFullYear());
   }
 
-  // mix embed from the article body
+  // mix embed from the article body — lazy-load plugins park the URL in
+  // data-src, so the widget URL can live in either attribute
   const doc = new DOMParser().parseFromString(post.content.rendered, 'text/html');
-  let host = null, embedSrc = null;
+  let host = null, embedSrc = null, permalink = null;
   for (const f of doc.querySelectorAll('iframe')) {
-    const src = f.getAttribute('src') || '';
+    const src = f.getAttribute('src') || f.getAttribute('data-src') || '';
     if (src.includes('soundcloud.com/player')) { host = 'soundcloud'; embedSrc = src; break; }
     if (src.includes('mixcloud.com/widget'))   { host = 'mixcloud';   embedSrc = src; break; }
   }
-  if (embedSrc) embedSrc = embedSrc.replace('auto_play=false','auto_play=true');
+  // Decoded's embeds carry their own look (orange accent, teaser footer,
+  // comments) — keep only the track resource and rebuild the player with the
+  // timeline's standard params so every card matches
+  if (embedSrc && host === 'soundcloud') {
+    const inner = new URL(embedSrc, 'https://w.soundcloud.com').searchParams.get('url');
+    embedSrc = inner ? scPlayer(inner) : embedSrc.replace('auto_play=false','auto_play=true');
+  } else if (embedSrc) {
+    embedSrc = embedSrc.replace('auto_play=false','auto_play=true');
+  }
+
+  // the embed caption always links to the track page (user/track — two path
+  // segments; profile links have one). The widget accepts that permalink in
+  // ?url=, so it doubles as a player source if no iframe was found, and as
+  // the card's plain "Listen" link if no widget can be built at all.
+  for (const a of doc.querySelectorAll('a[href*="soundcloud.com/"], a[href*="mixcloud.com/"]')) {
+    let u; try { u = new URL(a.getAttribute('href'), 'https://x.invalid'); } catch { continue; }
+    if (u.hostname === 'w.soundcloud.com') continue;
+    const segs = u.pathname.split('/').filter(Boolean);
+    if (segs.length !== 2) continue;
+    permalink = 'https://' + u.hostname + u.pathname;
+    if (!embedSrc) {
+      if (u.hostname.endsWith('soundcloud.com')) {
+        host = 'soundcloud';
+        embedSrc = scPlayer(permalink);
+      } else {
+        host = 'mixcloud';
+        embedSrc = 'https://www.mixcloud.com/widget/iframe/?feed=' + encodeURIComponent(u.pathname) + '&auto_play=true';
+      }
+    }
+    break;
+  }
 
   return {
     id: post.id, name, month, year,
     genre: genreOf(post) || undefined,
     moty: lower.includes('mix of the year'),
     article: post.link,
-    host: host || 'soundcloud',
-    embedSrc,
+    host, embedSrc, permalink,
     image: post.jetpack_featured_media_url || null,
     isNew: true,
   };
@@ -523,12 +553,16 @@ async function fetchLiveWinners(){
 /* ============================================================
    RENDER
    ============================================================ */
-function scEmbed(track){
-  return 'https://w.soundcloud.com/player/?url=' +
-    encodeURIComponent('https://api.soundcloud.com/tracks/' + track) +
+// the one place the widget's look is defined — every player, seeded or
+// live-parsed, goes through here so the cards stay uniform
+function scPlayer(resource){
+  return 'https://w.soundcloud.com/player/?url=' + encodeURIComponent(resource) +
     '&color=%23111111&auto_play=true&hide_related=true&show_comments=false&show_teaser=false';
 }
-const winnerEmbed = w => w.embedSrc || (w.host === 'soundcloud' ? scEmbed(w.track) : null);
+function scEmbed(track){
+  return scPlayer('https://api.soundcloud.com/tracks/' + track);
+}
+const winnerEmbed = w => w.embedSrc || (w.host === 'soundcloud' && w.track ? scEmbed(w.track) : null);
 const sortKey = w => w.year * 12 + w.month;
 
 function el(tag, cls, html){
