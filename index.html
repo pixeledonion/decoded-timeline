@@ -1144,8 +1144,10 @@ fetchLiveWinners()
     console.warn('Live sync failed:', err);
     pill.classList.add('offline');
     pillTxt.textContent = 'Offline · cached winners';
+    // surface the real error on-page — on mobile there's often no console
+    // to check, so this is the only way to see why the sync failed
     document.getElementById('footFine').textContent =
-      'Live sync unavailable right now — showing the built-in winner list. (Tip: serve this file over http://, not file://, so the browser can reach the decodedmagazine.com API.)';
+      'Live sync unavailable right now — showing the built-in winner list. (' + (err && err.message ? err.message : err) + ')';
   });
 </script>
 </body>
