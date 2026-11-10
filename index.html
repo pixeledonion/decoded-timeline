@@ -1130,7 +1130,10 @@ fetchLiveWinners()
   .then(({fresh, genreChanged}) => {
     pill.classList.add('live');
     if (fresh.length){
-      pillTxt.textContent = 'Live · ' + fresh.length + ' new winner' + (fresh.length > 1 ? 's' : '');
+      // only the single latest winner is ever "new" (see render()) — the
+      // pill shouldn't advertise fresh.length, which just counts how many
+      // posts are missing from the static SEED snapshot
+      pillTxt.textContent = 'Live · 1 new winner';
       render([...SEED, ...fresh]);
     } else {
       if (genreChanged) render(SEED); // badges drifted from the snapshot — redraw
