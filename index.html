@@ -510,7 +510,6 @@ function parseWinnerPost(post, genreOf = () => null){
     article: post.link,
     host, embedSrc, permalink,
     image: post.jetpack_featured_media_url || null,
-    isNew: true,
   };
 }
 
@@ -932,6 +931,9 @@ function render(winners){
   chrono.forEach((w,i) => w.seq = String(i+1).padStart(2,'0'));
   const sorted = [...chrono].reverse(); // newest first
   const latest = sorted[0], oldest = chrono[0];
+  // "New" badge belongs on the single most recent winner only, never on
+  // every post the live sync happens to find missing from SEED
+  sorted.forEach(w => { w.isNew = (w === latest); });
 
   // "your name here" CTA card leads the timeline again
   const next = new Date(latest.year, latest.month + 1, 1);
